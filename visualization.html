@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800' rel='stylesheet' type='text/css'>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<script type="text/javascript" src="d3/d3.v3.js"></script>
+<script type="text/javascript" src="jquery.js"></script>
+		<script type="text/javascript" src="selectbox/jquery.selectbox-0.2.js"></script>
+<!-- styles needed by jScrollPane -->
+<link type="text/css" href="jscrollpane/jquery.jscrollpane.css" rel="stylesheet" media="all" />
+		<link href="selectbox/jquery.selectbox.css" type="text/css" rel="stylesheet" />
+		<!-- 
+		<link type="text/css" href="jscrollpane/jquery.jscrollpane.lozenge.css" rel="stylesheet" media="all" />the styles for the lozenge theme -->
+
+<!-- the mousewheel plugin - optional to provide mousewheel support -->
+<script type="text/javascript" src="jscrollpane/jquery.mousewheel.js"></script>
+
+<!-- the jScrollPane script -->
+<script type="text/javascript" src="jscrollpane/jquery.jscrollpane.min.js"></script>
+
+
+<style type="text/css">
+
+body {
+	background-color: #fff;
+}
+
+table {
+    border-collapse: collapse; 
+}
+
+td.outer {
+    /*padding: 16px 0;*/
+	padding-top: 18px;
+	padding-bottom: 14px;
+    border-width: 1px 0 0 0;/**/
+    border-color: #eee;
+    border-style: solid;
+}
+
+.light {
+	font-family: "OpenSans-Light", "Open Sans Light", "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+
+.regular {
+	font-family: "OpenSans", "Open Sans", "HelveticaNeue", "Helvetica Neue", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+
+.bold {
+	font-weight:bold;
+	font-family: "OpenSans-Bold", "Open Sans Bold", "HelveticaNeue-Bold", "Helvetica Neue Bold", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+
+.rounded {
+border-radius: 4px; 
+-moz-border-radius: 4px; 
+-webkit-border-radius: 4px;
+border:2px solid #f0f0f0;
+}
+
+
+
+
+</style>
+<title>Ripple Live Network</title>
+</head>
+<body>
+
+
+
+
+
+
+<div class="light" style="color:#333; font-size:36px; text-align:center; width:100%; padding:30px 0;">Ripple Live Network</div>
+
+<div id="visualization" style="position:relative;  width: 935px ;
+  margin-left: auto ;
+  margin-right: auto ;">
+<!--
+ <div style="background-image:url('design-twoparts-cropped.png'); width:935px; height:1300px; position:absolute; opacity:0.5; z-index:2; margin-top:-100px;">&nbsp;</div>-->
+
+<input id="focus" type="text" style="opacity:0.8; position:absolute; top:23px; left:35px; padding-left:10px; padding-right:10px;width:295px; height:44px; font-size:14px;  color:#333; " class="light rounded" />
+
+<input id="searchButton" type="button" style="opacity:0.8; position:absolute; top:23px; left:360px; width:50px; height:50px; " value="Go" onClick="refocus($('#focus').val());"/>
+
+<div style="opacity:0.8; position:absolute; top:25px; left:684px; height:42px; width:230px; 	outline: none;" >
+<select id="currency" onchange="changeCurrency(this.value);">
+<option value="XRP">All Currencies</option>
+<option value="USD">USD - U.S. Dollars</option>
+<option value="EUR">EUR - Euro</option>
+<option value="JPY">JPY - Japanese Yen</option>
+<option value="BTC">BTC - Bitcoins</option>
+</select>
+</div>
+
+
+<div id="information" style="opacity:0.9; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:354px; padding:15px; padding-top:16px;">
+<div id="focalAddress" style="font-size:21px; color:#666; opacity:1.0; margin-bottom:13px; padding-left:5px; " class="light"></div>
+<div style="width:936px; border-top: 1px solid #c8c8c8; height:10px; margin-left:-16px;" ></div>
+<div style="width:52.5%; border: none; float:left;  font-size:14px; color:#666; padding-left:6px;" class="light">Balances</div>
+<div style="width:45.5%; border: none; float:right; font-size:14px; color:#666; " class="light">History</div>
+<div style="clear:both;"></div>
+<div style="width:936px; border-bottom: 1px solid #c8c8c8; height:10px; margin-left:-16px;" ></div>
+
+
+<div style="width:52.5%; height:293px; border-right: 1px solid #c8c8c8; float:left; "><div style="height:288px;  margin-left:-8px; "  class="scroll-pane" >
+
+
+
+
+<table border=0 style="width:465px; margin-top:4px; table-layout: fixed">
+<tr>
+		<td  class="outer" style="width:31px; padding-left:13px; padding-top:11px; padding-bottom: 7px; border-top:0px;"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #5876AD;"></circle></svg></td>
+		<td class="light outer" style="width:35px; font-size:12px; color:#666; border-top:0px;">XRP</td>
+		<td class="bold outer" style="font-size:14px; color:#000; border-top:0px;">200,061,394.535856</td>
+		<td class="outer" align="right" style="padding-right:15px;border-top: 0px; color:#666;" class="light">&nbsp;</td>
+	</tr>
+	
+	
+		<tr style="cursor:pointer" sublistid="qwer" onclick="toggleExpansion(this);">
+		<td  class="outer" style="width:31px; padding-left:13px; padding-top:11px; padding-bottom: 7px;"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
+		<td class="light outer" style="width:40px; font-size:12px; color:#666;">BTC</td>
+		<td class="bold outer" style="font-size:14px; color:#000;">0</td>
+		<td class="outer" align="right" style="padding-right:15px;border-top: 1px solid #f0f0f0; font-size:12px; color:#666;" class="light"><span id="qwerExpander">+</span></td>
+	</tr>
+	
+	
+	
+	
+		
+	<tr style="display:none;" id="qwer"><td colspan=4 style="padding-left:25px;"><div id="rewq"><table border=0 style="width:97%; margin-top:-4px;">
+		<tr style="height:25px;">
+			<td style="color: #36c; font-size:12px; padding-left:12px;" class="light">rUS79pheNhwN6zaq...</td>
+			<td class="light" style="font-size:14px; color:#c00; text-align:left;">-20.01</td>
+			<td class="bold" style="font-size:14px; color:#000; text-align:center;">10.24</td>
+			<td class="light" style="font-size:14px; color:#000; text-align:right;">12.00</td>
+		</tr>
+		<tr style="height:25px;">
+			<td style="color: #36c; font-size:12px; padding-left:12px;" class="light">rUS79pheNhwN6zaq...</td>
+			<td class="light" style="font-size:14px; color:#c00; text-align:left;">-2000.01</td>
+			<td class="bold" style="font-size:14px; color:#c00; text-align:center;">-1,252.55</td>	
+			<td class="light" style="font-size:14px; color:#000; text-align:right;">12.00</td>			
+		</tr>
+		<tr style="height:25px;">
+			<td style="color: #36c; font-size:12px; padding-left:12px;" class="light">rWWWWWWWWWWWWWWWWW....</td>
+			<td class="light" style="font-size:14px; color:#c00; text-align:left;">-5,000.23</td>
+			<td class="bold" style="font-size:14px; color:#c00; text-align:center;">-1,252.55</td>
+			<td class="light" style="font-size:14px; color:#000; text-align:right;">12.00</td>				
+		</tr>
+	</table></div></td></tr>
+	
+	
+	<tr>
+		<td  class="outer" style="width:31px; padding-left:13px; padding-top:11px; padding-bottom: 7px;"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #229044;"></circle></svg></td>
+		<td class="light outer" style="width:40px; font-size:12px; color:#666;">USD</td>
+		<td class="bold outer" style="font-size:14px; color:#000;">123.12</td>
+		<td class="outer" align="right" style="padding-right:15px;border-top: 1px solid #f0f0f0; font-size:12px; color:#666;" class="light"><span>+</span></td>
+	</tr>
+	
+	
+	
+		<tr>
+		<td  class="outer" style="width:31px; padding-left:13px; padding-top:11px; padding-bottom: 7px;"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #229044;"></circle></svg></td>
+		<td class="light outer" style="width:40px; font-size:12px; color:#666;">USD</td>
+		<td class="bold outer" style="font-size:14px; color:#d00;">-888</td>
+		<td class="outer" align="right" style="padding-right:15px;border-top: 1px solid #f0f0f0; font-size:12px; color:#666;" class="light"><span>+</span></td>
+	</tr>
+	
+	<tr>
+		<td  class="outer" style="width:31px; padding-left:13px; padding-top:11px; padding-bottom: 7px;"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #9F3E97;"></circle></svg></td>
+		<td class="light outer" style="width:40px; font-size:12px; color:#666;">EUR</td>
+		<td class="bold outer" style="font-size:14px; color:#c00;">-10</td>
+		<td class="outer" align="right" style="padding-right:15px;border-top: 1px solid #f0f0f0; font-size:12px; color:#666;" class="light">+</td>
+	</tr>
+
+
+</table>
+
+
+
+
+
+
+
+</div></div>
+<div style="width:425px;height:293px; float:right;"><div style="height:288px; margin-right:-8px;" class="scroll-pane" >
+<table style=" border-right: 1px solid #c8c8c8; table-layout: fixed; width:433px; ">
+	<tr>
+		<td style="width:46px; border-top:0px;" class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer" style="border-top:0px;"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right; border-top:0px;">rUS79pheNhwN6zaqD...</td>
+		<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+		<tr>
+		<td style="width:46px " class="outer"><div style="background-image:url('icons/receive.png');
+background-repeat:no-repeat;
+background-position:center; " title="Received money from...">&nbsp;</div></td>
+		<td class="outer" ><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right;">rWWWWWWWWWW...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+		<td style="width:46px " class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td  class="light outer" style="font-size:12px; color:#36c; text-align:right;">rUS79pheNhwN6zaqD...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+			<td style="width:46px " class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right;">rUS79pheNhwN6zaqD...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+			<td style="width:46px " class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right;">rUS79pheNhwN6zaqD...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+			<td style="width:46px " class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right;">rUS79pheNhwN6zaqD...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+			<td style="width:46px " class="outer"><div style="background-image:url('icons/send.png');
+background-repeat:no-repeat;
+background-position:center; " title="Sent money to...">&nbsp;</div></td>
+		<td class="outer"><span class="bold" style="font-size:12px;">1034.24</span> <span class="light" style="font-size:12px; color:#333">USD</span></td>
+		<td class="light outer" style="font-size:12px; color:#36c; text-align:right;">rUS79pheNhwN6zaqD...</td>
+				<td style="width:15px; border-top:0px;" class="outer"></td>
+	</tr>
+	
+	
+	
+	
+</table>
+</div></div>
+<div style="clear:both;"></div>
+
+
+
+</div>
+</div> <!-- END VISUALIZATION DIV -->
+
+<!--
+<table border=1 id="balanceTable"></table>
+<table id="trustLines"></table>
+-->
+
+
+<script type="text/javascript">
+
+var param = JSON.stringify(window.location.search.replace( "?","")).replace(/\W/g, '');
+
+//alert(param);
+
+var Options = {
+	server: {
+		"websocket_ip" : "s1.ripple.com",
+		"websocket_port" : 51233,
+		"websocket_ssl" : true
+	}
+};
+var RECURSION_DEPTH = 1;
+var REFERENCE_NODE = 'rUS79pheNhwN6zaqD3XLiyP6R1jBTwTg4o';//'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
+
+if (param == "") {
+	var focalNode = REFERENCE_NODE;
+} else {
+	var focalNode = param;
+}
+var lastFocalNode = REFERENCE_NODE;
+var currentCurrency = "XRP";
+var w = 935, h = 1085; hh = 710;
+
+
+
+var nodes = [ {x:w/2, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
+var le_links = [];
+var nodeMap = {};
+nodeMap[focalNode] = 0;
+var degreeMap = {};
+degreeMap[focalNode] = 0;
+
+var server = {};
+server.socket = null; 	
+var str;
+if (Options.server.websocket_ssl) {
+	str= "wss://" + Options.server.websocket_ip + ":";
+} else {
+	str= "ws://" + Options.server.websocket_ip + ":";
+}
+str += Options.server.websocket_port;
+str += "/";
+server.socket = new WebSocket(str);
+var expandedNodes = {};
+server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
+	var command = '{"command":"ledger", "ledger": "closed" , "full" : 1 }';
+	server.socket.send(command);
+	command= '{"command":"subscribe", "streams" : [ "transactions" ]}';
+	server.socket.send(command);
+	serverGetInfo(focalNode);
+	expandNode(focalNode);
+	lastFocalNode = REFERENCE_NODE;
+	addNodes(0);
+	/*
+
+	command= '{"command":"account_lines", "account":"'+REFERENCE_NODE+'"}'; //The reference node.
+	server.socket.send(command);
+	command= '{"command":"account_info", "ident":"'+REFERENCE_NODE+'"}'; //The reference node (get info).
+	server.socket.send(command);*/
+
+};
+
+
+function calculateArrows(d) {
+	if (currentCurrency == "XRP") {
+		var rr = Math.ceil(5+accountRadius(d.target.account));
+	} else {
+		if (d.currency != currentCurrency) {
+			return "none";
+		}
+		var bal = d.target.balances[currentCurrency];
+		if (!bal) {bal = 0}
+		var rr = Math.ceil(5+accountRadius2(bal));
+	}
+	//console.log("ARROW!");
+	//console.log(rr);
+	return "url(\#arrow"+Math.min(59,rr)+")";
+}
+
+server.socket.onmessage = function(msg) { //Process a message received from Ripple.
+	//console.log(msg);
+	var obj = jQuery.parseJSON(msg.data);
+	if (obj && obj.result && obj.result.lines) {
+		//console.log('TRUST LINES ANSWERED!');
+		//console.log(obj);
+		//expandedNodes[obj.result.account] = true; //redundant.
+		addConnections(obj.result.account, obj.result.lines);
+	} else if(obj.transaction) {
+		//Visualize the transaction.
+	} else if (obj && obj.result && obj.result.account_data) {
+		//console.log("ACCOUNT DATA RECEIVED!");
+		//console.log(obj.result.account_data);
+		if ($.isEmptyObject(obj.result.account_data)) {
+			alert("This address is not valid!");
+			console.log(obj);
+			refocus(lastFocalNode);
+			//refocus(lastFocalNode);
+		} else {
+			nodes[nodeMap[obj.result.account_data.Account]].account = obj.result.account_data;
+			if (currentCurrency == "XRP") { // Change the size of the circle.
+				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
+				updated.attr("r", accountRadius(obj.result.account_data));
+				svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
+			}
+		}
+	} else {
+		console.log("Could not interpret message.");
+	}
+};
+server.socket.onclose = function() {
+	console.log("disconnected from websocket");
+} 
+
+function addConnections(origin, trustLines) {
+	//Receive an array of the format:
+	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
+	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
+	
+	
+
+	nodes[nodeMap[origin]].trustLines = trustLines;
+	nodes[nodeMap[origin]].balances = getBalances(origin);
+
+	if (origin == focalNode) {
+		updateInformation(origin);
+	}
+	
+	if (currentCurrency != "XRP") { // Change the size of the circle.
+		updated = svg.select("g#nodeGroup").select("circle#"+origin);
+		var balance = nodes[nodeMap[origin]].balances[currentCurrency];
+		if (!balance) {balance = 0};
+		updated.attr("r", accountRadius2(balance)); //TODO: Also update its color.
+		svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
+	}
+	
+	if (degreeMap[origin] < RECURSION_DEPTH) {
+		expandedNodes[origin] = true;
+		var newNodes = [];
+		var newLinks = [];
+		for (var i=0; i<trustLines.length; i++) {
+			// add trustLines[i]["account"] to the list of nodes, if it's not on it already.
+			// add a link from the current node to trustLines[i]["account"], if it's not there already.
+			trustLine = trustLines[i];
+			console.log(trustLine);
+			account = trustLine["account"]
+			// Fetch the node corresponding to the counterparty of this trust line,
+			// or if it's not on the list yet, create one and add it to the list.
+			if ("undefined" == typeof nodeMap[account]) {
+				if (parseFloat(trustLine.limit) != 0.0 ||  parseFloat(trustLine.limit_peer) != 0.0) {
+					nodeMap[account]=nodes.length;
+					degreeMap[account] = degreeMap[origin] + 1;
+					var angle = Math.random() * 6.283185307179586;
+					var radius= Math.random() * 100;
+					var node = {
+						x:nodes[nodeMap[origin]].x+Math.cos(angle)*radius,
+						y:nodes[nodeMap[origin]].y+Math.sin(angle)*radius,
+						account: {
+							Account:account,
+							Balance:"0",
+						},
+						trustLines: [],
+						balances: {}
+					}
+					newNodes.push(node);
+					nodes.push(node);
+				}
+				degreeMap[account] = degreeMap[origin] + 1; 
+				//console.log("LINE 158");
+				//console.log(account);
+				serverGetInfo(account); //If this node is not on the list yet, we're going to need to get the info and trustLines for it.
+				serverGetLines(account);
+			} else {
+				var node = nodes[nodeMap[account]];
+			}
+			// Now, create links to all of the counterparties that have not been expanded (ie., had their links displayed.)
+			if (expandedNodes[account]) {} else {
+				var link={};
+				function goon(link) {
+					if (parseFloat(trustLine.limit) != 0.0 && parseFloat(trustLine.limit_peer) != 0.0) {
+						link.strength = 0.5;
+					} else {
+						link.strength = 1;
+					}
+					link.currency=trustLines[i].currency;
+					le_links.push(link);
+				}
+				if (parseFloat(trustLine.limit) != 0.0) {
+					link.source=nodes[nodeMap[ origin ]];
+					link.target=node;
+					link.value= parseFloat(trustLine.limit);
+					goon(link);
+				}
+				if (parseFloat(trustLine.limit_peer) != 0.0) {
+					var link={};
+					link.target=nodes[nodeMap[ origin ]];
+					link.source=node;
+					link.value= parseFloat(trustLine.limit_peer);
+					goon(link);
+				}
+
+			}
+		}
+	}
+	else if (degreeMap[origin] == RECURSION_DEPTH) { //do nothing.
+	}
+	
+	
+
+
+/*
+	nextDegree = degreeMap[origin] + 1;
+	for (var i=0; i<newNodes.length; i++) { //for all the people just added,
+		//request information of the trust lines of that person.
+		//Then, when the message comes back, it will recursively call this function,
+		//Until all the people connected to the first node have been listed, along with their connections.
+		var nextAccount = newNodes[i].account.Account;
+		if (nextDegree < RECURSION_DEPTH) { //Should we go another step?
+			serverGetLines(nextAccount);
+			degreeMap[nextAccount] = nextDegree;
+		}
+		serverGetInfo(nextAccount);
+	}
+	if (currentCurrency != "XRP") {
+		//nodes[nodeMap[obj.result.account_data.Account]].account = obj.result.account_data;
+		updated = svg.select("g#nodeGroup").select("circle#"+origin);
+		var balances = getBalances(origin);
+		console.log("BALANCES!!!");
+
+		var bal = balances[currentCurrency];
+		console.log(bal);
+		if (!bal) {bal = 0;}
+		updated.attr("r", accountRadius2(bal));
+		svg.select("g#linkGroup").selectAll("line").attr("marker-end", function(d) {
+			return "url(\#arrow"+Math.min(59,Math.ceil(5+accountRadius2(bal)))+")";});
+	}*/
+	reassignColors(origin);
+	addNodes(degreeMap[origin]+1);
+}
+
+
+function serverGetLines(account) {
+	if ($.isEmptyObject(nodes[nodeMap[account]].trustLines)) {
+		command= '{"command":"account_lines", "account":"'+account+'"}';
+		server.socket.send(command);
+	} else {
+		addConnections(account, nodes[nodeMap[account]].trustLines);
+	}
+}
+function serverGetInfo(account) {
+	//TODO: Test to see if the information is already available in memory.
+	console.log("REQUESTING INFO!");
+	console.log(account);
+	command = '{"command":"account_info", "ident":"'+account+'"}'; 
+	server.socket.send(command);
+}
+
+var svg = d3.select("#visualization")
+	.append("svg:svg")
+	.attr("width", w)
+	.attr("height", h).attr("pointer-events", "all")
+	.style("background-color", "#fff").on("click",function(){
+		if($('.sbOptions').css("display") == "block") {
+			$('.sbToggle').trigger('click');
+		}
+	})
+	.style("float","left").style("border", "1px solid #c8c8c8")
+	.style("margin-right","10").call(d3.behavior.zoom().on("zoom", redraw)).on("mousewheel.zoom",null).on("dblclick.zoom",null);
+
+	
+	
+var redrawnYet = false;
+function redraw() {
+	//console.log("here", d3.event.translate, d3.event.scale);
+	var translation = d3.event.translate;
+	linkGroup.attr("transform","translate(" + translation + ")");
+	nodeGroup.attr("transform","translate(" + translation + ")");
+	//+ " scale(" + d3.event.scale + ")");
+	//+ " scale(" + d3.event.scale + ")");
+}	
+
+var defs = svg.append("defs");
+
+
+function defineRadialGradient(name, innerColor, outerColor) {
+	var radGrad = defs.append("radialGradient")
+		.attr("id", name)
+		.attr("fx", "50%")
+		.attr("fy", "50%")
+		.attr("r", "100%")
+		.attr("spreadMethod", "pad");
+	radGrad.append("stop")
+		.attr("offset","0%")
+		.attr("stop-color",innerColor)
+		.attr("stop-opacity","1");
+	radGrad.append("stop")
+		.attr("offset","100%")
+		.attr("stop-color",outerColor)
+		.attr("stop-opacity","1");
+}
+
+/*
+defineRadialGradient("circleGradient0", "#55a7cc", "#346aa9");
+defineRadialGradient("circleGradient1", "#83b8d6", "#5083b9");
+defineRadialGradient("circleGradient2", "#a7cae1", "#7ba1cb");
+defineRadialGradient("circleGradient3", "#d0e1ed", "#a3c2dd");
+defineRadialGradient("circleGradient4", "#f2f6fa", "#cee8f1");
+*/
+
+//Blue
+//							currency	center     rim
+defineRadialGradient("gradientXRP0", "#55a7cc", "#346aa9"); //The focal node.
+defineRadialGradient("gradientXRP1", "#83b8d6", "#5083b9"); //1 degree from the focal node.
+defineRadialGradient("gradientXRP2", "#a7cae1", "#7ba1cb"); //2 degrees
+defineRadialGradient("gradientXRP3", "#d0e1ed", "#a3c2dd"); //etc.
+defineRadialGradient("gradientXRP4", "#f2f6fa", "#cee8f1");
+
+//Deep Green
+defineRadialGradient("gradientUSD0", "#8dc198", "#609869");
+defineRadialGradient("gradientUSD1", "#a2cbab", "#7eab85");
+defineRadialGradient("gradientUSD2", "#b7d6bd", "#9cbda1");
+defineRadialGradient("gradientUSD3", "#cbe0d0", "#b9d0bd");
+defineRadialGradient("gradientUSD4", "#e0ebe2", "#d7e2d9");
+
+//Purple
+defineRadialGradient("gradientEUR0", "#b76e99", "#863d66");
+defineRadialGradient("gradientEUR1", "#c389ab", "#9c6283");
+defineRadialGradient("gradientEUR2", "#d0a4be", "#b2879f");
+defineRadialGradient("gradientEUR3", "#dcbfd0", "#c9abbc");
+defineRadialGradient("gradientEUR4", "#d9dae3", "#dfd0d8");
+
+//Yellow (NOT DONE YET)
+defineRadialGradient("gradientJPY0", "#a7cc55", "#6aa934");
+defineRadialGradient("gradientJPY1", "#b8d683", "#83b950");
+defineRadialGradient("gradientJPY2", "#cae1a7", "#a1cb7b");
+defineRadialGradient("gradientJPY3", "#e1edd0", "#c2dda3");
+defineRadialGradient("gradientJPY4", "#f6faf2", "#e8f1ce");
+
+//Orange
+defineRadialGradient("gradientBTC0", "#e19e41", "#b76f2f");
+defineRadialGradient("gradientBTC1", "#e5af65", "#c38a57");
+defineRadialGradient("gradientBTC2", "#e9c189", "#d0a57e");
+defineRadialGradient("gradientBTC3", "#edd2ad", "#dcbfa6");
+defineRadialGradient("gradientBTC4", "#f1e4d1", "#e9dacd");
+
+// The colors to use for zero-balance accounts:
+//Gray (NOT DONE YET)
+defineRadialGradient("gradient__Z0", "#cccccc", "#a9a9a9");
+defineRadialGradient("gradient__Z1", "#d6d6d6", "#b9b9b9");
+defineRadialGradient("gradient__Z2", "#e1e1e1", "#cbcbcb");
+defineRadialGradient("gradient__Z3", "#ededed", "#dddddd");
+defineRadialGradient("gradient__Z4", "#fafafa", "#f1f1f1");
+
+// The colors to use for negative-balance accounts:       
+//Red (NOT DONE YET)
+defineRadialGradient("gradient__N0", "#550000", "#340000");
+defineRadialGradient("gradient__N1", "#830000", "#500000");
+defineRadialGradient("gradient__N2", "#a70000", "#7b0000");
+defineRadialGradient("gradient__N3", "#d00000", "#a30000");
+defineRadialGradient("gradient__N4", "#f20000", "#ce0000");
+
+var borderColors = [ // Uses the same border color regardless of currency; I'll have to fix this later.
+	"#2f466e", //degree 0
+	"#346aa9", //degree 1, etc.
+	"#5083b9",
+	"#7ba1cb",
+	"#a3c2dd",
+]
+
+
+for (var i=0; i<60; i++) {
+defs.append("svg:marker")
+	.attr("id", "arrow"+(i))
+	.attr("viewBox", "0 0 10 10")
+	.attr("refX", i)
+	.attr("refY", 5)
+	.style("fill","#2d466e")
+	.attr("markerWidth", 16)
+	.attr("markerHeight", 12)
+	.attr("orient", "auto")
+	.append("svg:path")
+	.attr("d", "M 0 0 L 10 5 L 0 10 z");
+}
+
+var linkGroup = svg.append("g").attr("id","linkGroup");
+var nodeGroup = svg.append("g").attr("id","nodeGroup");
+
+
+
+function accountRadius2(balance) {
+	if (!balance) { balance = 0; }
+	if (currentCurrency == "XRP") {
+		return 14+Math.pow(Math.log(Math.abs(balance)+1),3) / 2000;
+	} else {
+		return 14+Math.pow(Math.log(Math.abs(1000000000*balance)+1),3) / 2000;
+	}
+	//return Math.pow(Math.log(account.Balance+1000000000),3) / 4000
+	//return Math.pow(Math.log(account.Balance+1000000000),2) / 30;
+}
+
+function accountRadius(account) {
+	return accountRadius2(account.Balance);
+	//return 14+Math.pow(Math.log(account.Balance+1),3) / 2000;
+	//return Math.pow(Math.log(account.Balance+1000000000),3) / 4000
+	//return Math.pow(Math.log(account.Balance+1000000000),2) / 30;
+}
+
+var force = d3.layout.force()
+	.size([w, 710])
+	.linkDistance(80)
+	.linkStrength(function(d) {
+		if (currentCurrency == "XRP" || currentCurrency == d.currency) {
+			return d.strength * 0.25;
+		} else {
+			return 0;
+		}
+	}).friction(0.5)
+	.charge(-1500).nodes([]).links([]).start();
+
+function expandNode(address) {
+	lastFocalNode = focalNode;
+	focalNode = address;
+	degreeMap = {};
+	degreeMap[address] = 0;
+	reassignColors(address);
+	if (expandedNodes[address]) {} else {
+		serverGetLines(address);
+	}
+	//serverGetLines(address);
+	updateInformation(address);
+}
+
+
+function colorNodes(nodeSelection, colorDegree) {
+
+	
+	nodeSelection.style("fill", function(d) { 
+		var cur = currentCurrency;
+		if(cur != "XRP") {
+			if(!d.balances[cur]){cur="__Z";}
+			else if(d.balances[cur]<0){cur="__N";}
+		}
+		return ("url(#gradient"+cur+ colorDegree +")");
+	} )
+		.style("stroke", borderColors[colorDegree] )
+		.style("stroke-width", 0.5)
+		.on("mouseover", function(d) { var cur = currentCurrency; if(cur != "XRP") {if(!d.balances[cur]){cur="__Z";} else if(d.balances[cur]<0){cur="__N";}} d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree+1)+")"); })
+		.on("mouseout",  function(d) { var cur = currentCurrency; if(cur != "XRP") {if(!d.balances[cur]){cur="__Z";} else if(d.balances[cur]<0){cur="__N";}} d3.select(d3.event.target).style("fill", "url(#gradient"+cur+ colorDegree   +")"); });
+	if (colorDegree == 0) {
+		nodeSelection.style("stroke", "#fc0").style("stroke-width", 5);
+	}
+}
+
+
+function reassignColors(address) {
+	var colorDegree = Math.min(degreeMap[address], 3);
+	colorNodes(svg.select("g#nodeGroup").select("circle#"+address), colorDegree)
+	
+	function goon(counterparty) { // ...then reassign the colors of each counterparty too,
+		//only if the new degree is lower than the previous one (or the degree is as yet unknown)
+		if (typeof degreeMap[counterparty] == "undefined" || degreeMap[counterparty] > degreeMap[address]+1) {
+			degreeMap[counterparty] = degreeMap[address]+1;
+			reassignColors(counterparty);
+		}
+	}
+	for (var i=0; i<le_links.length; i++) {
+		var link = le_links[i];
+		if (link.source.account.Account == address) { // If this address is party to the link...
+			goon(link.target.account.Account);
+		} else if (link.target.account.Account == address) {
+			goon(link.source.account.Account);
+		}
+	}
+
+}
+
+
+
+
+
+function addNodes(degree) {
+
+	force.nodes(nodes).links(le_links);
+	var timer;
+	var colorDegree = Math.min(degree, 3);
+	var node = svg.select("g#nodeGroup").selectAll("circle.node").data(nodes)
+		.enter().append("svg:circle")
+		.attr("class", "node")
+		.attr("id", function(d) { return d.account.Account;})
+		.attr("cx", function(d) { return d.x; })
+		.attr("cy", function(d) { return d.y; })
+		.attr("r",  function(d) { return accountRadius(d.account) })
+		.attr("title", function(d) { return d.account.Account; })
+		.style("cursor", "pointer")
+		.on("click", function(d) { force.stop(); expandNode(d.account.Account); setTimeout(force.resume,500); } );
+	colorNodes(node, colorDegree);
+	node.append("svg:title").text( function(d) { return d.account.Account;} );
+	node.call(force.drag);
+	
+
+	var link = svg.select("g#linkGroup").selectAll("line").data(force.links())
+		.enter().append("svg:line")
+		.style("stroke","#2d2d2d")
+		.attr("stroke-width", function(d){ if(currentCurrency=="XRP" || currentCurrency==d.currency){return 1;}else{return 0;} })
+		.attr("marker-end", calculateArrows);
+		
+	force.start();
+  
+
+	var node = svg.selectAll("circle.node");
+	var link = svg.selectAll("line");
+	
+	force.on("tick", function(e) {
+		node.attr("cx", function(d) { return d.x; })
+			.attr("cy", function(d) { return d.y; });
+		link.attr("x1", function(d) {return d.source.x;})
+			.attr("y1", function(d) {return d.source.y;})
+			.attr("x2", function(d) {return d.target.x;})
+			.attr("y2", function(d) {return d.target.y;})
+	});
+}
+
+function refocus(focus) {
+	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
+	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+	lastFocalNode = focalNode;
+	focalNode = focus;
+	//alert("Focusing on: "+focus);
+	nodes = [{x:0.5*w, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
+	le_links = [];
+	nodeMap = {};
+	nodeMap[focalNode] = 0;
+	expandedNodes = {};
+	degreeMap = {};
+	degreeMap[focalNode] = 0;
+	serverGetLines(focalNode);
+	addNodes(0);
+	serverGetInfo(focalNode);
+	updateInformation(focus);
+}
+
+
+function currencyDot(currency) {
+	switch (currency) {
+		case 'XRP' : return '#5876AD';
+		case 'USD' : return '#229044';
+		case 'JPY' : return '#E0A925';
+		case 'EUR' : return '#9F3E97';
+		case 'BTC' : return '#ff8800';
+		default:
+			return '#000';
+	}
+}
+
+function commas(number) {
+    var parts = number.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+}
+
+function updateInformation(address) {
+	$('#focus').val(address);
+	$('#focalAddress').text(address);
+	//$('#balance').text(nodes[nodeMap[address]].account.Balance);
+
+	var balances = getBalances(address);
+	//console.log("BALANCES:");
+	//console.log(balances);
+	$('#balanceTable').text("");
+	if (nodes[nodeMap[address]].account.Balance != 0) {
+		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot('XRP')+';" /></svg></td><td>XRP</td><td><b>'+commas(nodes[nodeMap[address]].account.Balance/1000000)+'</b></td></tr>');
+	}
+	for (var key in balances) {
+		//console.log(key);
+		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot(key)+';" /></svg></td><td>'+key+'</td><td><b>'+commas(balances[key])+'</b></td></tr>');
+	}
+	$('#trustLines').text("");
+	if (nodes[nodeMap[address]].trustLines) {
+		for (var i=0; i<nodes[nodeMap[address]].trustLines.length; i++) {
+			var trustLine = nodes[nodeMap[address]].trustLines[i];		
+			$('#trustLines').append('<tr><td onmouseover="lighten(\''+trustLine.account+'\')" onmouseout="darken(\''+trustLine.account+'\')" onclick="expandNode(\''+trustLine.account+'\')" style="cursor:pointer;">'+trustLine.account+'</td><td>'+trustLine.balance+'</td><td>'+trustLine.currency+'</td></tr>');
+		}
+	}
+
+}
+
+
+function getBalances(address) {
+	var balances = {};
+	if (nodes[nodeMap[address]].trustLines) {
+		for (var i=0; i<nodes[nodeMap[address]].trustLines.length; i++) {
+			var trustLine = nodes[nodeMap[address]].trustLines[i];
+			if (balances[trustLine.currency]) {
+				balances[trustLine.currency] += parseFloat(trustLine.balance);
+			} else {
+				balances[trustLine.currency] = parseFloat(trustLine.balance);
+			}
+		}
+	}
+	return balances;
+}
+
+
+function lighten(address) {
+	var old = $('#'+address).css('fill');
+	var suffix = old.slice(old.length-4, old.length);
+	suffix = suffix.slice(0,3) + (parseInt(suffix[3])+1);
+	$('#'+address).css('fill','url(#gradient'+suffix+')');
+}
+function darken(address) {
+	var old = $('#'+address).css('fill');
+	var suffix = old.slice(old.length-4, old.length);
+	suffix = suffix.slice(0,3) + Math.max(0,(parseInt(suffix[3])-1));
+	$('#'+address).css('fill','url(#gradient'+suffix+')');
+}
+
+function changeCurrency(newCurrency) {
+	currentCurrency = newCurrency;
+	degreeMap = {};
+	degreeMap[focalNode] = 0;
+	reassignColors(focalNode); //TODO: Copied from above. Refactor.
+	if (currentCurrency != "XRP") { // Change the size of the circle.
+		updated = svg.select("g#nodeGroup").selectAll("circle");
+		updated.attr("r", function(d) {var bal = d.balances[currentCurrency]; if(!bal){bal=0}; return accountRadius2(bal); } ); //TODO: Also update its color.
+		
+		/*var linkies = force.links();
+		for (var i=0; i<linkies.length; i++) {
+			if (linkies[i].currency != currentCurrency) {
+				linkies[i].strength = 0;
+			}
+		}*/
+
+		svg.select("g#linkGroup").selectAll("line").attr("stroke-width", function(d){ if(currentCurrency=="XRP" || currentCurrency==d.currency){return 1;}else{return 0;} }).attr("marker-end", calculateArrows);
+	} else if (currentCurrency == "XRP") { // Change the size of the circle.
+		updated = svg.select("g#nodeGroup").selectAll("circle");
+		updated.attr("r", function(d) {return accountRadius(d.account)} );
+
+		svg.select("g#linkGroup").selectAll("line").attr("stroke-width", function(d){ if(currentCurrency=="XRP" || currentCurrency==d.currency){return 1;}else{return 0;} }).attr("marker-end", calculateArrows);
+	}
+	force.start();
+}
+
+function toggleExpansion(row) {
+	var expander = document.getElementById("qwerExpander");
+	if (expander.innerHTML == "+") {
+		//$('#'+expander.getAttribute("sublistid"))
+			//.show();
+
+		$('#rewq').animate({height:'86px'});
+				$('#'+row.getAttribute("sublistid")).show()
+		//css('display','table-row');//.animate({height:'500px'});
+		expander.innerHTML = "&ndash;";
+	} else {
+		$('#rewq').animate({height:'0px'}, {complete: function(){$('#'+row.getAttribute("sublistid")).hide();} });
+		//
+		expander.innerHTML = "+";
+	}
+}
+
+
+</script>
+
+
+
+<script>
+
+$(function()
+{
+	//$('.scroll-pane').jScrollPane();
+	$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});
+});
+//$('#scrollbar1').tinyscrollbar();
+
+		$(function () {
+			$("#currency").selectbox();
+		});
+updateInformation(focalNode);
+</script>
+</body>
+</html>
