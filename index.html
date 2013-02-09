@@ -1,0 +1,852 @@
+<!DOCTYPE html><html>
+<head>
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800' rel='stylesheet' type='text/css'>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<link href="mainstylesheet.css" type="text/css" rel="stylesheet" />
+
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="d3.v3.min.js"></script>
+
+	<script type="text/javascript" src="selectbox/jquery.selectbox-0.2.min.js"></script>
+	<link href="selectbox/jquery.selectbox.css" type="text/css" rel="stylesheet" />
+
+	<script type="text/javascript" src="jscrollpane/jquery.mousewheel.js"></script>
+	<script type="text/javascript" src="jscrollpane/jquery.jscrollpane.min.js"></script>
+	<link type="text/css" href="jscrollpane/jquery.jscrollpane.css" rel="stylesheet" media="all" />
+
+	<title>Ripple Live Network</title>
+</head>
+
+<body>
+<div class="light heading darkgray">Ripple Live Network</div>
+
+
+<!-- BEGIN VISUALIZATION DIV -->
+<div id="visualization" style="position:relative; margin-left: auto; margin-right: auto;" class="fullwidth">
+
+<!-- top bar -->
+<input id="focus" class="light rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val());"/>
+<div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
+	<select id="currency" onchange="changeCurrency(this.value);">
+		<option value="XRP">All Currencies</option>
+		<option value="USD">USD - U.S. Dollars</option>
+		<option value="EUR">EUR - Euro</option>
+		<option value="JPY">JPY - Japanese Yen</option>
+		<option value="BTC">BTC - Bitcoins</option>
+	</select>
+</div>
+
+
+
+<!-- begin information below -->
+<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:354px; padding-top:16px;">
+
+<div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px;"></div>
+<div class="fullwidth topbordered horizontalrule"></div>
+<div class="light midsize mediumgray" style="border none; float:left; padding-left:20px;">Balances</div>
+<div class="light midsize mediumgray" style="width:44%; border:none; float:right;">History</div>
+<div class="clearboth"></div>
+<div class="fullwidth bottombordered horizontalrule"></div>
+
+<!-- the table on the left -->
+<div class="bottomlist rightbordered" style="width:490px; float:left;">
+<div class="scroll-pane" style="height:288px; margin-left:10px;">
+	<table style="width:465px; margin-top:4px;" class="outertable">
+		<tr class="toprow">
+			<td class="circlecell" ><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #5876AD;"></circle></svg></td>
+			<td class="light small mediumgray" style="width:35px;">XRP</td>
+			<td class="bold amount">200,061,394.535856</td>
+			<td class="light expander">&nbsp;</td>
+		</tr>
+				
+		<tr style="cursor:pointer" sublistid="qwer" onclick="toggleExpansion(this);">
+			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
+			<td class="light small mediumgray">BTC</td>
+			<td class="bold amount">0</td>
+			<td class="light expander"><span id="qwerExpander">+</span></td>
+		</tr>
+
+		<tr class="innertablecontainer" id="qwer">
+		<td colspan=4>
+		<div id="rewq">
+		<table class="innertable">
+			<tr>
+				<th class="light address"><span style="cursor:pointer;">rUS79pheNhwN6zaq...</span>...</th>
+				<td class="light negative amount">-20.01</td>
+				<td class="bold amount center">10.24</td>
+				<td class="light amount right">12.00</td>
+			</tr>
+			<tr>
+				<th class="light address"><span style="cursor:pointer;">rUS79pheNhwN6zaq...</span></th>
+				<td class="light negative amount">-2000.01</td>
+				<td class="bold amount center">-1,252.55</td>	
+				<td class="light amount right">12.00</td>			
+			</tr>
+			<tr>
+				<th class="light address"><span style="cursor:pointer;">rWWWWWWWWWWWWWWW...</span></th>
+				<td class="light negative amount">-5000.01</td>
+				<td class="bold amount center">-1,252.55</td>	
+				<td class="light amount right">12.00</td>		
+			</tr>
+		</table></div></td></tr>
+			
+		<tr style="cursor:pointer">
+			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
+			<td class="light small mediumgray">BTC</td>
+			<td class="bold amount">0</td>
+			<td class="light expander"><span>+</span></td>
+		</tr>
+			
+		<tr style="cursor:pointer">
+			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
+			<td class="light small mediumgray">BTC</td>
+			<td class="bold amount">0</td>
+			<td class="light expander"><span>+</span></td>
+		</tr>
+			
+		<tr style="cursor:pointer">
+			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
+			<td class="light small mediumgray">BTC</td>
+			<td class="bold amount">0</td>
+			<td class="light expander"><span>+</span></td>
+		</tr>
+	</table>
+</div></div>
+
+
+<!-- the table on the right -->
+<div class="bottomlist" style="width:410px; float:right;">
+<div class="scroll-pane" style="height:288px; margin-right:-22px;">
+<table class="rightbordered outertable" style="width:432px;">
+	<tr class="toprow">
+		<td style="width:46px;"><div class="send icon" title="Sent money to...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+	
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rWWWWWWWWW...</td>
+		<td class="marginalcell"/>
+	</tr>
+	
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td/>
+	</tr>
+
+	<tr>
+		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
+		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
+		<td class="light address right">rUS79pheNhwN6zaqD...</td>
+		<td class="marginalcell"/>
+	</tr>
+</table></div></div>
+
+<div class="clearboth"></div>
+
+</div><!-- end information at the bottom -->
+
+</div><!-- END VISUALIZATION DIV -->
+
+<table border=1 id="balanceTable"></table>
+<table id="trustLines"></table>
+
+
+<!-- Javascript for the visualization, using the D3 library -->
+<script type="text/javascript">
+
+var param = JSON.stringify(window.location.search.replace("?","")).replace(/\W/g, '');
+
+var Options = {
+	server: {
+		"websocket_ip" : "s1.ripple.com",
+		"websocket_port" : 51233,
+		"websocket_ssl" : true
+	}
+};
+var RECURSION_DEPTH = 1;
+var REFERENCE_NODE = 'rUS79pheNhwN6zaqD3XLiyP6R1jBTwTg4o';//'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
+
+if (param == "") {
+	var focalNode = REFERENCE_NODE;
+} else {
+	var focalNode = param;
+}
+
+var lastFocalNode = REFERENCE_NODE;
+var currentCurrency = "XRP";
+var w = 935;  //Width
+var h = 1085; //Height
+var hh = 710; //Height above the bottom bar
+
+var nodes = [ {x:w/2, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
+var le_links = [];
+var nodeMap = {};
+nodeMap[focalNode] = 0;
+var degreeMap = {};
+degreeMap[focalNode] = 0;
+
+var server = {};
+server.socket = null; 	
+var str;
+if (Options.server.websocket_ssl) {
+	str= "wss://" + Options.server.websocket_ip + ":";
+} else {
+	str= "ws://" + Options.server.websocket_ip + ":";
+}
+str += Options.server.websocket_port;
+str += "/";
+server.socket = new WebSocket(str);
+var expandedNodes = {};
+
+server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
+	/* //TODO: Update the graph in real time as data comes in from the streams.
+	var command = '{"command":"ledger", "ledger": "closed" , "full" : 1 }';
+	server.socket.send(command);
+	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
+	server.socket.send(command);
+	*/
+	serverGetInfo(focalNode);
+	expandNode(focalNode);
+	lastFocalNode = REFERENCE_NODE;
+	addNodes(0);
+};
+
+server.socket.onmessage = function(msg) { //Process a message received from Ripple.
+	var obj = jQuery.parseJSON(msg.data);
+	if (obj && obj.result && obj.result.lines) {
+		addConnections(obj.result.account, obj.result.lines);
+	} else if(obj.transaction) {
+		//TODO: Visualize the transaction.
+	} else if (obj && obj.result && obj.result.account_data) {
+		if ($.isEmptyObject(obj.result.account_data)) {
+			alert("This address is not valid!");
+			console.log(obj);
+			refocus(lastFocalNode);
+		} else {
+			var n = nodes[nodeMap[obj.result.account_data.Account]];
+			n.account = obj.result.account_data;
+			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
+				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
+				updated.attr("r", nodeRadius(n));
+				updateAllArrows();
+			}
+		}
+	} else {
+		console.log("Could not interpret message.");
+	}
+};
+
+server.socket.onclose = function() {
+	console.log("disconnected from websocket");
+} 
+
+
+function calculateArrows(d) {
+	var rr = Math.ceil(5+nodeRadius(d.target));
+	return "url(\#arrow"+Math.min(59,rr)+")";
+}
+
+function updateAllArrows() {
+	svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
+}
+
+
+function currentCurrencyBalance(accountNode) {
+	var output;
+	if (currentCurrency == "XRP") {
+		output = accountNode.account.Balance;
+	} else {
+		output = accountNode.balances[currentCurrency];
+		if (!output) { output = 0; }
+	}
+	return output;
+}
+
+function addConnections(origin, trustLines) {
+	//Receive an array of the format:
+	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
+	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
+	
+	nodes[nodeMap[origin]].trustLines = trustLines;
+	nodes[nodeMap[origin]].balances = getBalances(origin);
+
+	if (origin == focalNode) {
+		updateInformation(origin);
+	}
+	
+	if (currentCurrency != "XRP") { // Change the size of the circle, if we needed to wait until now to figure out its balance (i.e. we're looking at a currency other than XRP.)
+		svg.select("g#nodeGroup")
+			.select("circle#"+origin)
+			.attr("r", nodeRadius(nodes[nodeMap[origin]]) );
+		updateAllArrows();
+	}
+	
+	if (degreeMap[origin] < RECURSION_DEPTH) {
+		expandedNodes[origin] = true;
+		var newNodes = [];
+		var newLinks = [];
+		for (var i=0; i<trustLines.length; i++) {
+			// add trustLines[i]["account"] to the list of nodes, if it's not on it already.
+			// add a link from the current node to trustLines[i]["account"], if it's not there already.
+			trustLine = trustLines[i];
+			account = trustLine["account"];
+			// Fetch the node corresponding to the counterparty of this trust line,
+			// or if it's not on the list yet, create one and add it to the list.
+			if ("undefined" == typeof nodeMap[account]) {
+				if (parseFloat(trustLine.limit) != 0.0 ||  parseFloat(trustLine.limit_peer) != 0.0) {
+					nodeMap[account]=nodes.length;
+					degreeMap[account] = degreeMap[origin] + 1;
+					var angle = Math.random() * 6.283185307179586;
+					var radius= Math.random() * 100;
+					var node = {
+						x:nodes[nodeMap[origin]].x+Math.cos(angle)*radius,
+						y:nodes[nodeMap[origin]].y+Math.sin(angle)*radius,
+						account: {
+							Account:account,
+							Balance:"0",
+						},
+						trustLines: [],
+						balances: {}
+					}
+					newNodes.push(node);
+					nodes.push(node);
+				}
+				degreeMap[account] = degreeMap[origin] + 1; 
+				serverGetInfo(account); //If this node is not on the list yet, we're going to need to get the info and trustLines for it.
+				serverGetLines(account);
+			} else {
+				var node = nodes[nodeMap[account]];
+			}
+			// Now, create links to all of the counterparties that have not been expanded (ie., had their links displayed.)
+			if (expandedNodes[account]) {} else {
+				var link={};
+				function goon(link) {
+					if (parseFloat(trustLine.limit) != 0.0 && parseFloat(trustLine.limit_peer) != 0.0) {
+						link.strength = 0.5;
+					} else {
+						link.strength = 1;
+					}
+					link.currency=trustLines[i].currency;
+					le_links.push(link);
+				}
+				if (parseFloat(trustLine.limit) != 0.0) {
+					link.source=nodes[nodeMap[ origin ]];
+					link.target=node;
+					link.value= parseFloat(trustLine.limit);
+					goon(link);
+				}
+				if (parseFloat(trustLine.limit_peer) != 0.0) {
+					var link={};
+					link.target=nodes[nodeMap[ origin ]];
+					link.source=node;
+					link.value= parseFloat(trustLine.limit_peer);
+					goon(link);
+				}
+
+			}
+		}
+	}
+	
+	reassignColors(origin);
+	addNodes(degreeMap[origin]+1);
+}
+
+
+function serverGetLines(address) {
+	if ($.isEmptyObject(nodes[nodeMap[address]].trustLines)) {
+		command= '{"command":"account_lines", "account":"'+address+'"}';
+		server.socket.send(command);
+	} else {
+		addConnections(address, nodes[nodeMap[address]].trustLines);
+	}
+}
+function serverGetInfo(address) {
+	if (nodes[nodeMap[address]].account.index) {
+		// Don't do anything if we already have information about this account.
+		// TODO: Why does this never happen?
+	} else {
+		command = '{"command":"account_info", "ident":"'+address+'"}'; 
+		server.socket.send(command);
+	}
+}
+
+var svg = d3.select("#visualization")
+	.append("svg:svg")
+	.attr("width", w)
+	.attr("height", h).attr("pointer-events", "all")
+	.style("background-color", "#fff").on("click",function(){
+		if($('.sbOptions').css("display") == "block") {
+			$('.sbToggle').trigger('click');
+		}
+	})
+	.style("float","left").style("border", "1px solid #c8c8c8")
+	.style("margin-right","10").call(d3.behavior.zoom({
+        dblclick: false,
+        wheel: false
+    }).on("zoom", redraw)).on("mousewheel.zoom",null).on("dblclick.zoom",null);
+
+/*TODO: Fix this bug in Firefox, where the graph pans strangely when you scroll the mouse wheel. (It should do nothing.)*/
+var lastD3ZoomEvent = {scale:1, translate:[0,0]};
+var firefoxOffset = [0,0];
+function redraw() {
+	var translation = d3.event.translate;
+	if (d3.event.scale == lastD3ZoomEvent.scale) {
+		var tx = translation[0] - firefoxOffset[0];
+		var ty = translation[1] - firefoxOffset[1];
+		linkGroup.attr("transform","translate(" + [tx,ty] + ")");
+		nodeGroup.attr("transform","translate(" + [tx,ty] + ")");
+	} else {
+		firefoxOffset = [firefoxOffset[0] + (d3.event.translate[0] - lastD3ZoomEvent.translate[0]), (firefoxOffset[1] + d3.event.translate[1] - lastD3ZoomEvent.translate[1])];
+	}
+	lastD3ZoomEvent = jQuery.extend(true, {}, d3.event);
+}	
+
+var defs = svg.append("defs");
+
+
+function defineRadialGradient(name, innerColor, outerColor) {
+	var radGrad = defs.append("radialGradient")
+		.attr("id", name)
+		.attr("fx", "50%")
+		.attr("fy", "50%")
+		.attr("r", "100%")
+		.attr("spreadMethod", "pad");
+	radGrad.append("stop")
+		.attr("offset","0%")
+		.attr("stop-color",innerColor)
+		.attr("stop-opacity","1");
+	radGrad.append("stop")
+		.attr("offset","100%")
+		.attr("stop-color",outerColor)
+		.attr("stop-opacity","1");
+}
+
+
+
+
+
+
+var COLOR_TABLE = {
+//currency  |  center  |   rim  |
+	"__N": [["#550000","#340000"], //degree 0
+/*RED*/		["#830000","#500000"], //degree 1
+			["#a70000","#7b0000"], //etc.
+			["#d00000","#a30000"],
+			["#f20000","#ce0000"]],
+			
+	"BTC": [["#e19e41","#b76f2f"],
+/*ORANGE*/	["#e5af65","#c38a57"],
+			["#e9c189","#d0a57e"],
+			["#edd2ad","#dcbfa6"],
+			["#f1e4d1","#e9dacd"]],
+			
+	"XRP": [["#55a7cc","#346aa9"],
+/*BLUE*/	["#83b8d6","#5083b9"],
+			["#a7cae1","#7ba1cb"],
+			["#d0e1ed","#a3c2dd"],
+			["#f2f6fa","#cee8f1"]]}
+			
+/*
+defineRadialGradient("circleGradient0", "#55a7cc", "#346aa9");
+defineRadialGradient("circleGradient1", "#83b8d6", "#5083b9");
+defineRadialGradient("circleGradient2", "#a7cae1", "#7ba1cb");
+defineRadialGradient("circleGradient3", "#d0e1ed", "#a3c2dd");
+defineRadialGradient("circleGradient4", "#f2f6fa", "#cee8f1");
+*/
+
+//Blue
+//							currency	center     rim
+defineRadialGradient("gradientXRP0", "#55a7cc", "#346aa9"); //The focal node.
+defineRadialGradient("gradientXRP1", "#83b8d6", "#5083b9"); //1 degree from the focal node.
+defineRadialGradient("gradientXRP2", "#a7cae1", "#7ba1cb"); //2 degrees
+defineRadialGradient("gradientXRP3", "#d0e1ed", "#a3c2dd"); //etc.
+defineRadialGradient("gradientXRP4", "#f2f6fa", "#cee8f1");
+
+//Deep Green
+defineRadialGradient("gradientUSD0", "#8dc198", "#609869");
+defineRadialGradient("gradientUSD1", "#a2cbab", "#7eab85");
+defineRadialGradient("gradientUSD2", "#b7d6bd", "#9cbda1");
+defineRadialGradient("gradientUSD3", "#cbe0d0", "#b9d0bd");
+defineRadialGradient("gradientUSD4", "#e0ebe2", "#d7e2d9");
+
+//Purple
+defineRadialGradient("gradientEUR0", "#b76e99", "#863d66");
+defineRadialGradient("gradientEUR1", "#c389ab", "#9c6283");
+defineRadialGradient("gradientEUR2", "#d0a4be", "#b2879f");
+defineRadialGradient("gradientEUR3", "#dcbfd0", "#c9abbc");
+defineRadialGradient("gradientEUR4", "#d9dae3", "#dfd0d8");
+
+//Yellow (NOT DONE YET)
+defineRadialGradient("gradientJPY0", "#a7cc55", "#6aa934");
+defineRadialGradient("gradientJPY1", "#b8d683", "#83b950");
+defineRadialGradient("gradientJPY2", "#cae1a7", "#a1cb7b");
+defineRadialGradient("gradientJPY3", "#e1edd0", "#c2dda3");
+defineRadialGradient("gradientJPY4", "#f6faf2", "#e8f1ce");
+
+//Orange
+defineRadialGradient("gradientBTC0", "#e19e41", "#b76f2f");
+defineRadialGradient("gradientBTC1", "#e5af65", "#c38a57");
+defineRadialGradient("gradientBTC2", "#e9c189", "#d0a57e");
+defineRadialGradient("gradientBTC3", "#edd2ad", "#dcbfa6");
+defineRadialGradient("gradientBTC4", "#f1e4d1", "#e9dacd");
+
+// The colors to use for zero-balance accounts:
+//Gray (NOT DONE YET)
+defineRadialGradient("gradient__Z0", "#cccccc", "#a9a9a9");
+defineRadialGradient("gradient__Z1", "#d6d6d6", "#b9b9b9");
+defineRadialGradient("gradient__Z2", "#e1e1e1", "#cbcbcb");
+defineRadialGradient("gradient__Z3", "#ededed", "#dddddd");
+defineRadialGradient("gradient__Z4", "#fafafa", "#f1f1f1");
+
+// The colors to use for negative-balance accounts:       
+//Red (NOT DONE YET)
+defineRadialGradient("gradient__N0", "#550000", "#340000");
+defineRadialGradient("gradient__N1", "#830000", "#500000");
+defineRadialGradient("gradient__N2", "#a70000", "#7b0000");
+defineRadialGradient("gradient__N3", "#d00000", "#a30000");
+defineRadialGradient("gradient__N4", "#f20000", "#ce0000");
+
+var borderColors = [
+	"#2f466e", //degree 0
+	"#346aa9", //degree 1, etc.
+	"#5083b9",
+	"#7ba1cb",
+	"#a3c2dd",
+]
+
+
+for (var i=0; i<60; i++) {
+defs.append("svg:marker")
+	.attr("id", "arrow"+(i))
+	.attr("viewBox", "0 0 10 10")
+	.attr("refX", i)
+	.attr("refY", 5)
+	.style("fill","#2d466e")
+	.attr("markerWidth", 16)
+	.attr("markerHeight", 12)
+	.attr("orient", "auto")
+	.append("svg:path")
+	.attr("d", "M 0 0 L 10 5 L 0 10 z");
+}
+
+var linkGroup = svg.append("g").attr("id","linkGroup");
+var nodeGroup = svg.append("g").attr("id","nodeGroup");
+
+
+
+
+function nodeRadius(accountNode) {
+	var bal = currentCurrencyBalance(accountNode);
+	if (currentCurrency != "XRP") {
+		bal = bal * 1000000000;
+	} 
+	return 14+Math.pow(Math.log(Math.abs(bal)+1),3) / 2000;
+}
+
+var force = d3.layout.force()
+	.size([w, 710])
+	.linkDistance(80)
+	.linkStrength(function(d) {
+		if (currentCurrency == "XRP" || currentCurrency == d.currency) {
+			return d.strength * 0.25;
+		} else {
+			return 0;
+		}
+	}).friction(0.5)
+	.charge(-1500).nodes([]).links([]).start();
+
+function expandNode(address) {
+	lastFocalNode = focalNode;
+	focalNode = address;
+	degreeMap = {};
+	degreeMap[address] = 0;
+	reassignColors(address);
+	if (expandedNodes[address]) {} else {
+		serverGetLines(address);
+	}
+	updateInformation(address);
+}
+
+
+function borderColor(cur, colorDegree) {
+	return "#000";
+	if (colorDegree == 0) {
+		return "#fc0"; //It actually doesn't use the border color for the focal node.
+	} else {
+		return COLOR_TABLE[cur][colorDegree-1][1]; //Use the rim color of the next darkest degree.
+	}
+}
+
+
+function findCur(d) {
+	var cur = currentCurrency;
+	if(cur != "XRP") {
+		if(!d.balances[cur]){cur="__Z";}
+		else if(d.balances[cur]<0){cur="__N";}
+	}
+	return cur;
+}
+
+function lightenNodeFunction(colorDegree) {
+	return function(d) {
+		var cur = findCur(d);
+		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+	}
+}
+function darkenNodeFunction(colorDegree) {
+	return function(d) {
+		var cur = findCur(d);
+		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+	}
+}
+function lightenAddress(address) {
+	var colorDegree = Math.min(degreeMap[address], 3);
+	var cur = findCur(force.nodes()[nodeMap[address]]);
+	nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+}
+function darkenAddress(address) {
+	var colorDegree = Math.min(degreeMap[address], 3);
+	var cur = findCur(force.nodes()[nodeMap[address]]);
+	nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+}
+
+
+
+function colorNodes(nodeSelection, colorDegree) {
+	nodeSelection.style("fill", function(d) { 
+			var cur = findCur(d);
+			return ("url(#gradient"+cur+colorDegree+")");
+		})
+		.style("stroke", function(d){var cur = findCur(d); return borderColor(cur,colorDegree);} )
+		.style("stroke-width", 0.5)
+		.on("mouseover", lightenNodeFunction(colorDegree))
+		.on("mouseout", darkenNodeFunction(colorDegree));
+	if (colorDegree == 0) {
+		nodeSelection.style("stroke-width", 5);
+	}
+}
+
+
+function reassignColors(address) {
+	var colorDegree = Math.min(degreeMap[address], 3);
+	colorNodes(svg.select("g#nodeGroup").select("circle#"+address), colorDegree)
+	
+	function goon(counterparty) { // ...then reassign the colors of each counterparty too,
+		//only if the new degree is lower than the previous one (or the degree is as yet unknown)
+		if (typeof degreeMap[counterparty] == "undefined" || degreeMap[counterparty] > degreeMap[address]+1) {
+			degreeMap[counterparty] = degreeMap[address]+1;
+			reassignColors(counterparty);
+		}
+	}
+	for (var i=0; i<le_links.length; i++) {
+		var link = le_links[i];
+		if (link.source.account.Account == address) { // If this address is party to the link...
+			goon(link.target.account.Account);
+		} else if (link.target.account.Account == address) {
+			goon(link.source.account.Account);
+		}
+	}
+}
+
+
+
+
+
+function addNodes(degree) {
+
+	force.nodes(nodes).links(le_links);
+	var timer;
+	var colorDegree = Math.min(degree, 3);
+	var node = svg.select("g#nodeGroup").selectAll("circle.node").data(nodes)
+		.enter().append("svg:circle")
+		.attr("class", "node")
+		.attr("id", function(d) { return d.account.Account;})
+		.attr("cx", function(d) { return d.x; })
+		.attr("cy", function(d) { return d.y; })
+		.attr("r", nodeRadius )
+		.attr("title", function(d) { return d.account.Account; })
+		.style("cursor", "pointer")
+		.on("click", function(d) { force.stop(); expandNode(d.account.Account); setTimeout(force.resume,500); } );
+	colorNodes(node, colorDegree);
+	node.append("svg:title").text( function(d) { return d.account.Account;} );
+	node.call(force.drag);
+	
+
+	var link = svg.select("g#linkGroup").selectAll("line").data(force.links())
+		.enter().append("svg:line")
+		.style("stroke","#2d2d2d")
+		.attr("stroke-width", linkOrNot)
+		.attr("marker-end", calculateArrows);
+		
+	force.start();
+  
+
+	var node = svg.selectAll("circle.node");
+	var link = svg.selectAll("line");
+	
+	force.on("tick", function(e) {
+		node.attr("cx", function(d) { return d.x; })
+			.attr("cy", function(d) { return d.y; });
+		link.attr("x1", function(d) {return d.source.x;})
+			.attr("y1", function(d) {return d.source.y;})
+			.attr("x2", function(d) {return d.target.x;})
+			.attr("y2", function(d) {return d.target.y;})
+	});
+}
+
+function refocus(focus) {
+	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
+	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+	lastFocalNode = focalNode;
+	focalNode = focus;
+	nodes = [{x:0.5*w, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
+	le_links = [];
+	nodeMap = {};
+	nodeMap[focalNode] = 0;
+	expandedNodes = {};
+	degreeMap = {};
+	degreeMap[focalNode] = 0;
+	serverGetLines(focalNode);
+	addNodes(0);
+	serverGetInfo(focalNode);
+	updateInformation(focus);
+}
+
+
+function currencyDot(currency) {
+	switch (currency) {
+		case 'XRP' : return '#5876AD';
+		case 'USD' : return '#229044';
+		case 'JPY' : return '#E0A925';
+		case 'EUR' : return '#9F3E97';
+		case 'BTC' : return '#ff8800';
+		default:
+			return '#000';
+	}
+}
+
+function commas(number) {
+    var parts = number.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+}
+
+function updateInformation(address) {
+	$('#focus').val(address);
+	$('#focalAddress').text(address);
+
+	var balances = getBalances(address);
+
+	$('#balanceTable').text("");
+	if (nodes[nodeMap[address]].account.Balance != 0) {
+		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot('XRP')+';" /></svg></td><td>XRP</td><td><b>'+commas(nodes[nodeMap[address]].account.Balance/1000000)+'</b></td></tr>');
+	}
+	for (var key in balances) {
+		//console.log(key);
+		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot(key)+';" /></svg></td><td>'+key+'</td><td><b>'+commas(balances[key])+'</b></td></tr>');
+	}
+	$('#trustLines').text("");
+	if (nodes[nodeMap[address]].trustLines) {
+		for (var i=0; i<nodes[nodeMap[address]].trustLines.length; i++) {
+			var trustLine = nodes[nodeMap[address]].trustLines[i];		
+			$('#trustLines').append('<tr><td onmouseover="lightenAddress(\''+trustLine.account+'\')" onmouseout="darkenAddress(\''+trustLine.account+'\')" onclick="expandNode(\''+trustLine.account+'\')" style="cursor:pointer;">'+trustLine.account+'</td><td>'+trustLine.balance+'</td><td>'+trustLine.currency+'</td></tr>');
+		}
+	}
+}
+
+
+function getBalances(address) {
+	var balances = {};
+	if (nodes[nodeMap[address]].trustLines) {
+		for (var i=0; i<nodes[nodeMap[address]].trustLines.length; i++) {
+			var trustLine = nodes[nodeMap[address]].trustLines[i];
+			if (balances[trustLine.currency]) {
+				balances[trustLine.currency] += parseFloat(trustLine.balance);
+			} else {
+				balances[trustLine.currency] = parseFloat(trustLine.balance);
+			}
+		}
+	}
+	return balances;
+}
+
+function linkOrNot(d) {
+	if(currentCurrency=="XRP" || currentCurrency==d.currency) {return 1;} 
+	else{return 0;}
+}
+
+function changeCurrency(newCurrency) {
+	currentCurrency = newCurrency;
+	degreeMap = {};
+	degreeMap[focalNode] = 0;
+	reassignColors(focalNode);
+	updated = svg.select("g#nodeGroup").selectAll("circle");
+	updated.attr("r", nodeRadius );
+	svg.select("g#linkGroup").selectAll("line").attr("stroke-width", linkOrNot);
+	updateAllArrows();
+	force.start();
+}
+
+function toggleExpansion(row) {
+	var expander = document.getElementById("qwerExpander");
+	if (expander.innerHTML == "+") {
+		$('#rewq').animate({height:'86px'});
+				$('#'+row.getAttribute("sublistid")).show()
+		expander.innerHTML = "&ndash;";
+	} else {
+		$('#rewq').animate({height:'0px'}, {complete: function(){$('#'+row.getAttribute("sublistid")).hide();} });
+		expander.innerHTML = "+";
+	}
+}
+
+
+</script>
+
+
+<!-- Initialization functions -->
+<script>
+	$(function() {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
+	$(function () {$("#currency").selectbox();});
+	updateInformation(focalNode);
+</script>
+
+
+
+</body>
+</html>
