@@ -41,7 +41,7 @@
 
 
 <!-- begin information below -->
-<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:354px; padding-top:16px;">
+<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:369px; padding-top:16px;">
 
 <div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px;"></div>
 <div class="fullwidth topbordered horizontalrule"></div>
@@ -53,66 +53,7 @@
 <!-- the table on the left -->
 <div class="bottomlist rightbordered" style="width:490px; float:left;">
 <div class="scroll-pane" style="height:288px; margin-left:10px;">
-	<table style="width:465px; margin-top:4px;" class="outertable">
-		<tr class="toprow">
-			<td class="circlecell" ><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #5876AD;"></circle></svg></td>
-			<td class="light small mediumgray" style="width:35px;">XRP</td>
-			<td class="bold amount">200,061,394.535856</td>
-			<td class="light expander">&nbsp;</td>
-		</tr>
-				
-		<tr style="cursor:pointer" sublistid="qwer" onclick="toggleExpansion(this);">
-			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
-			<td class="light small mediumgray">BTC</td>
-			<td class="bold amount">0</td>
-			<td class="light expander"><span id="qwerExpander">+</span></td>
-		</tr>
-
-		<tr class="innertablecontainer" id="qwer">
-		<td colspan=4>
-		<div id="rewq">
-		<table class="innertable">
-			<tr>
-				<th class="light address"><span style="cursor:pointer;">rUS79pheNhwN6zaq...</span>...</th>
-				<td class="light negative amount">-20.01</td>
-				<td class="bold amount center">10.24</td>
-				<td class="light amount right">12.00</td>
-			</tr>
-			<tr>
-				<th class="light address"><span style="cursor:pointer;">rUS79pheNhwN6zaq...</span></th>
-				<td class="light negative amount">-2000.01</td>
-				<td class="bold amount center">-1,252.55</td>	
-				<td class="light amount right">12.00</td>			
-			</tr>
-			<tr>
-				<th class="light address"><span style="cursor:pointer;">rWWWWWWWWWWWWWWW...</span></th>
-				<td class="light negative amount">-5000.01</td>
-				<td class="bold amount center">-1,252.55</td>	
-				<td class="light amount right">12.00</td>		
-			</tr>
-		</table></div></td></tr>
-			
-		<tr style="cursor:pointer">
-			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
-			<td class="light small mediumgray">BTC</td>
-			<td class="bold amount">0</td>
-			<td class="light expander"><span>+</span></td>
-		</tr>
-			
-		<tr style="cursor:pointer">
-			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
-			<td class="light small mediumgray">BTC</td>
-			<td class="bold amount">0</td>
-			<td class="light expander"><span>+</span></td>
-		</tr>
-			
-		<tr style="cursor:pointer">
-			<td  class="circlecell"><svg width="22" height="22"><circle cx="11" cy="11" r="11" style="fill: #f80;"></circle></svg></td>
-			<td class="light small mediumgray">BTC</td>
-			<td class="bold amount">0</td>
-			<td class="light expander"><span>+</span></td>
-		</tr>
-	</table>
+	<table style="width:465px; margin-top:4px;" class="outertable" id="balanceTable"></table>
 </div></div>
 
 
@@ -202,6 +143,71 @@ var Options = {
 var RECURSION_DEPTH = 1;
 var REFERENCE_NODE = 'rUS79pheNhwN6zaqD3XLiyP6R1jBTwTg4o';//'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
 
+var COLOR_TABLE = {
+//currency  |  center  |   rim  |
+	"__Z": [["#dfe0e1","#999999"], //degree 0
+/*GRAY*/	["#ebecec","#aaa9a9"], //degree 1
+			["#ededee","#bcbbbb"], //etc.
+			["#f3f4f4","#d0cece"],
+			["#fdfdfe","#e5e4e3"]],
+			
+	"__N": [["#f05656","#ee2d2c"],
+/*RED*/		["#f37a6f","#f16249"],
+			["#f6998b","#f5886d"],
+			["#fab9ac","#f9ad95"],
+			["#fddad1","#fcd4c4"]],
+			
+	"BTC": [["#e19e41","#b76f2f"],
+/*ORANGE*/	["#e5af65","#c38a57"],
+			["#e9c189","#d0a57e"],
+			["#edd2ad","#dcbfa6"],
+			["#f1e4d1","#e9dacd"]],
+			
+	"JPY": [["#fcf5a1","#fedb3d"],
+/*YELLOW*/	["#fdf7b4","#ffe069"],
+			["#fdf7c4","#ffe68d"],
+			["#fefad8","#ffed83"],
+			["#fffcea","#fff5d6"]],
+			
+	"USD": [["#99cc66","#669940"],
+/*LIME*/	["#acd585","#82a85d"],
+			["#c0dea1","#9eb880"],
+			["#d4e8be","#bbcba4"],
+			["#e8f2dd","#dae1cd"]],
+			
+	"AUD": [["#8dc198","#609869"],
+/*GREEN*/	["#a2cbab","#7eab85"],
+			["#b7d6bd","#9cbda1"],
+			["#cbe0d0","#b9d0bd"],
+			["#e0ebe2","#d7e2d9"]],
+			
+	"XRP": [["#55a7cc","#346aa9"],
+/*BLUE*/	["#83b8d6","#5083b9"],
+			["#a7cae1","#7ba1cb"],
+			["#d0e1ed","#a3c2dd"],
+			["#f2f6fa","#cee8f1"]],
+			
+	"___": [["#6566ae","#363795"], //I.e., any other currency.
+/*INDIGO*/	["#7e7cbb","#5855a5"],
+			["#9896c9","#7a74b6"],
+			["#b6b4da","#9e99cb"],
+			["#d7d6eb","#c9c6e3"]],
+			
+	"CAD": [["#8e68ad","#673695"],
+/*VIOLET*/	["#9f80ba","#7d58a5"],
+			["#8e68ad","#673695"],
+			["#c8b8da","#b29ecc"],
+			["#e0d8eb","#d4cae4"]],
+			
+	"EUR": [["#b76e99","#863d66"],
+/*PINK*/	["#c389ab","#9c6283"],
+			["#d0a4be","#b2879f"],
+			["#dcbfd0","#c9abbc"],
+			["#d9dae3","#dfd0d8"]]};
+			
+
+
+
 if (param == "") {
 	var focalNode = REFERENCE_NODE;
 } else {
@@ -265,6 +271,10 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
 				updated.attr("r", nodeRadius(n));
 				updateAllArrows();
+			}
+			if (obj.result.account_data.Account == focalNode) {
+				//Update the XRP listing on the table below. (But don't rewrite the whole table, because that's excessive.)
+				$("#xrpBalance").text(commas(n.account.Balance/1000000));
 			}
 		}
 	} else {
@@ -439,7 +449,6 @@ function redraw() {
 
 var defs = svg.append("defs");
 
-
 function defineRadialGradient(name, innerColor, outerColor) {
 	var radGrad = defs.append("radialGradient")
 		.attr("id", name)
@@ -456,99 +465,13 @@ function defineRadialGradient(name, innerColor, outerColor) {
 		.attr("stop-color",outerColor)
 		.attr("stop-opacity","1");
 }
+for (var cur in COLOR_TABLE) {	
+	var shades = COLOR_TABLE[cur];
+	for (var i=0; i<shades.length; i++) {
+		defineRadialGradient("gradient"+cur+i, shades[i][0], shades[i][1]);
+	}
+}
 
-
-
-
-
-
-var COLOR_TABLE = {
-//currency  |  center  |   rim  |
-	"__N": [["#550000","#340000"], //degree 0
-/*RED*/		["#830000","#500000"], //degree 1
-			["#a70000","#7b0000"], //etc.
-			["#d00000","#a30000"],
-			["#f20000","#ce0000"]],
-			
-	"BTC": [["#e19e41","#b76f2f"],
-/*ORANGE*/	["#e5af65","#c38a57"],
-			["#e9c189","#d0a57e"],
-			["#edd2ad","#dcbfa6"],
-			["#f1e4d1","#e9dacd"]],
-			
-	"XRP": [["#55a7cc","#346aa9"],
-/*BLUE*/	["#83b8d6","#5083b9"],
-			["#a7cae1","#7ba1cb"],
-			["#d0e1ed","#a3c2dd"],
-			["#f2f6fa","#cee8f1"]]}
-			
-/*
-defineRadialGradient("circleGradient0", "#55a7cc", "#346aa9");
-defineRadialGradient("circleGradient1", "#83b8d6", "#5083b9");
-defineRadialGradient("circleGradient2", "#a7cae1", "#7ba1cb");
-defineRadialGradient("circleGradient3", "#d0e1ed", "#a3c2dd");
-defineRadialGradient("circleGradient4", "#f2f6fa", "#cee8f1");
-*/
-
-//Blue
-//							currency	center     rim
-defineRadialGradient("gradientXRP0", "#55a7cc", "#346aa9"); //The focal node.
-defineRadialGradient("gradientXRP1", "#83b8d6", "#5083b9"); //1 degree from the focal node.
-defineRadialGradient("gradientXRP2", "#a7cae1", "#7ba1cb"); //2 degrees
-defineRadialGradient("gradientXRP3", "#d0e1ed", "#a3c2dd"); //etc.
-defineRadialGradient("gradientXRP4", "#f2f6fa", "#cee8f1");
-
-//Deep Green
-defineRadialGradient("gradientUSD0", "#8dc198", "#609869");
-defineRadialGradient("gradientUSD1", "#a2cbab", "#7eab85");
-defineRadialGradient("gradientUSD2", "#b7d6bd", "#9cbda1");
-defineRadialGradient("gradientUSD3", "#cbe0d0", "#b9d0bd");
-defineRadialGradient("gradientUSD4", "#e0ebe2", "#d7e2d9");
-
-//Purple
-defineRadialGradient("gradientEUR0", "#b76e99", "#863d66");
-defineRadialGradient("gradientEUR1", "#c389ab", "#9c6283");
-defineRadialGradient("gradientEUR2", "#d0a4be", "#b2879f");
-defineRadialGradient("gradientEUR3", "#dcbfd0", "#c9abbc");
-defineRadialGradient("gradientEUR4", "#d9dae3", "#dfd0d8");
-
-//Yellow (NOT DONE YET)
-defineRadialGradient("gradientJPY0", "#a7cc55", "#6aa934");
-defineRadialGradient("gradientJPY1", "#b8d683", "#83b950");
-defineRadialGradient("gradientJPY2", "#cae1a7", "#a1cb7b");
-defineRadialGradient("gradientJPY3", "#e1edd0", "#c2dda3");
-defineRadialGradient("gradientJPY4", "#f6faf2", "#e8f1ce");
-
-//Orange
-defineRadialGradient("gradientBTC0", "#e19e41", "#b76f2f");
-defineRadialGradient("gradientBTC1", "#e5af65", "#c38a57");
-defineRadialGradient("gradientBTC2", "#e9c189", "#d0a57e");
-defineRadialGradient("gradientBTC3", "#edd2ad", "#dcbfa6");
-defineRadialGradient("gradientBTC4", "#f1e4d1", "#e9dacd");
-
-// The colors to use for zero-balance accounts:
-//Gray (NOT DONE YET)
-defineRadialGradient("gradient__Z0", "#cccccc", "#a9a9a9");
-defineRadialGradient("gradient__Z1", "#d6d6d6", "#b9b9b9");
-defineRadialGradient("gradient__Z2", "#e1e1e1", "#cbcbcb");
-defineRadialGradient("gradient__Z3", "#ededed", "#dddddd");
-defineRadialGradient("gradient__Z4", "#fafafa", "#f1f1f1");
-
-// The colors to use for negative-balance accounts:       
-//Red (NOT DONE YET)
-defineRadialGradient("gradient__N0", "#550000", "#340000");
-defineRadialGradient("gradient__N1", "#830000", "#500000");
-defineRadialGradient("gradient__N2", "#a70000", "#7b0000");
-defineRadialGradient("gradient__N3", "#d00000", "#a30000");
-defineRadialGradient("gradient__N4", "#f20000", "#ce0000");
-
-var borderColors = [
-	"#2f466e", //degree 0
-	"#346aa9", //degree 1, etc.
-	"#5083b9",
-	"#7ba1cb",
-	"#a3c2dd",
-]
 
 
 for (var i=0; i<60; i++) {
@@ -567,9 +490,6 @@ defs.append("svg:marker")
 
 var linkGroup = svg.append("g").attr("id","linkGroup");
 var nodeGroup = svg.append("g").attr("id","nodeGroup");
-
-
-
 
 function nodeRadius(accountNode) {
 	var bal = currentCurrencyBalance(accountNode);
@@ -605,7 +525,6 @@ function expandNode(address) {
 
 
 function borderColor(cur, colorDegree) {
-	return "#000";
 	if (colorDegree == 0) {
 		return "#fc0"; //It actually doesn't use the border color for the focal node.
 	} else {
@@ -619,6 +538,7 @@ function findCur(d) {
 	if(cur != "XRP") {
 		if(!d.balances[cur]){cur="__Z";}
 		else if(d.balances[cur]<0){cur="__N";}
+		else if(!COLOR_TABLE.hasOwnProperty(cur)) {cur = "___";}
 	}
 	return cur;
 }
@@ -749,43 +669,95 @@ function refocus(focus) {
 }
 
 
-function currencyDot(currency) {
-	switch (currency) {
-		case 'XRP' : return '#5876AD';
-		case 'USD' : return '#229044';
-		case 'JPY' : return '#E0A925';
-		case 'EUR' : return '#9F3E97';
-		case 'BTC' : return '#ff8800';
-		default:
-			return '#000';
-	}
-}
 
 function commas(number) {
     var parts = number.toString().split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	if (parts[1] && parts[1].length>5) {parts[1] = parts[1].slice(0,5)};
     return parts.join(".");
+}
+
+function abbreviate(address) {
+	return address.slice(0,25)+"...";
 }
 
 function updateInformation(address) {
 	$('#focus').val(address);
 	$('#focalAddress').text(address);
 
+	var currencies = [];
 	var balances = getBalances(address);
+	for (var cur in balances) {
+		currencies.push(cur);
+	}
+	currencies.sort(function(a,b){return (Math.abs(balances[b])-Math.abs(balances[a]))});
+	
+	var trustLines = nodes[nodeMap[address]].trustLines;
+	if (!trustLines) {
+		trustLines = [];
+	}
 
 	$('#balanceTable').text("");
-	if (nodes[nodeMap[address]].account.Balance != 0) {
-		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot('XRP')+';" /></svg></td><td>XRP</td><td><b>'+commas(nodes[nodeMap[address]].account.Balance/1000000)+'</b></td></tr>');
-	}
-	for (var key in balances) {
-		//console.log(key);
-		$('#balanceTable').append('<tr><td><svg width="20" height="20"><circle cx="10" cy="10" r="10" style="fill: '+currencyDot(key)+';" /></svg></td><td>'+key+'</td><td><b>'+commas(balances[key])+'</b></td></tr>');
-	}
-	$('#trustLines').text("");
-	if (nodes[nodeMap[address]].trustLines) {
-		for (var i=0; i<nodes[nodeMap[address]].trustLines.length; i++) {
-			var trustLine = nodes[nodeMap[address]].trustLines[i];		
-			$('#trustLines').append('<tr><td onmouseover="lightenAddress(\''+trustLine.account+'\')" onmouseout="darkenAddress(\''+trustLine.account+'\')" onclick="expandNode(\''+trustLine.account+'\')" style="cursor:pointer;">'+trustLine.account+'</td><td>'+trustLine.balance+'</td><td>'+trustLine.currency+'</td></tr>');
+	$('#balanceTable').append(
+		'<tr class="toprow">'+
+			'<td class="circlecell"><svg width="22" height="22">'+
+				'<circle cx="11" cy="11" r="11" style="fill:'+COLOR_TABLE['XRP'][0][1]+';"></circle>'+
+			'</svg></td>'+
+			'<td class="light small mediumgray" style="width:35px;">XRP</td>'+
+			'<td class="bold amount" id="xrpBalance">'+commas(nodes[nodeMap[address]].account.Balance/1000000)+'</td>'+
+			'<td class="light expander">&nbsp;</td>'+
+		'</tr>');
+	
+	for (var i=0; i<currencies.length; i++) {
+		var cur = currencies[i];
+		var trustLinesForCur = [];
+		for (var j=0; j<trustLines.length; j++) {
+			var trustLine = trustLines[j];
+			if (trustLine.currency == cur) {
+				trustLinesForCur.push(trustLine);
+			}
+		}
+		trustLinesForCur.sort(function(a,b){return Math.abs(b.balance)-Math.abs(a.balance);});
+		$('#balanceTable').append(
+			'<tr style="cursor:'+(trustLinesForCur.length ? 'pointer' : 'auto')+'" sublistid="'+cur+
+					'" numberofsubrows="'+trustLinesForCur.length+'" '+
+					'onclick="'+(trustLinesForCur.length ? 'toggleExpansion(this)' : '')+'">'+
+				'<td class="circlecell"><svg width="22" height="22">'+
+					'<circle cx="11" cy="11" r="11" style="fill:'+COLOR_TABLE[(COLOR_TABLE.hasOwnProperty(cur)?cur:'___')][0][1]+';"></circle>'+
+				'</svg></td>'+
+				'<td class="light small mediumgray">'+cur+'</td>'+
+				'<td class="bold amount">'+commas(balances[cur])+'</td>'+
+				'<td class="light expander">'+(trustLinesForCur.length ? '<span id="'+cur+'Expander">+</span></td>' : '&nbsp;')+
+			'</tr>');
+			
+		if (trustLinesForCur.length) {
+			$('#balanceTable').append(
+				'<tr class="innertablecontainer" id="'+cur+'">'+
+				'<td colspan=4>'+
+				'<div id="'+cur+'Inner">'+
+				'<table class="innertable" style="table-layout:fixed;" id="'+cur+'InnerTable">'+
+				'</table></div></td></tr>');
+			$('#'+cur+'InnerTable').append(
+				'<tr>'+
+					'<th class="bold midsize" style="font-weight:bold; width:50%;">Address</th>'+
+					'<td class="bold midsize" style="width:16%;">Min</td>'+
+					'<td class="bold midsize center" style="width:16%">Balance</td>'+
+					'<td class="bold midsize right" style="width:16%;">Max</td>'+
+				'</tr>');
+			for (var j=0; j<trustLinesForCur.length; j++) {
+				var tl = trustLinesForCur[j];
+				$('#'+cur+'InnerTable').append(
+					'<tr>'+
+						'<th class="light address"><span style="cursor:pointer;" '+
+							'onmouseover="lightenAddress(\''+tl.account+'\');"'+
+							'onmouseout="darkenAddress(\''+tl.account+'\');"'+
+							'onclick="expandNode(\''+tl.account+'\');">'+
+							abbreviate(tl.account)+'</span></th>'+
+						'<td class="light '+(tl.limit_peer>0 ? 'negative ' : '')+'amount">'+commas(-1*tl.limit_peer)+'</td>'+
+						'<td style="width:37px;" class="bold '+(tl.balance<0 ? 'negative ' : '')+'amount center">'+commas(tl.balance)+'</td>'+
+						'<td style="width:37px;" class="light '+(tl.limit<0 ? 'negative ' : '')+'amount right">'+commas(tl.limit)+'</td>'+
+					'</tr>');
+			}		
 		}
 	}
 }
@@ -824,13 +796,15 @@ function changeCurrency(newCurrency) {
 }
 
 function toggleExpansion(row) {
-	var expander = document.getElementById("qwerExpander");
+	var cur = row.getAttribute("sublistid");
+	var numberOfSubrows = parseInt(row.getAttribute("numberofsubrows"));
+	var expander = document.getElementById(cur+"Expander");
 	if (expander.innerHTML == "+") {
-		$('#rewq').animate({height:'86px'});
-				$('#'+row.getAttribute("sublistid")).show()
+		$('#'+cur+'Inner').animate({height:(11+(numberOfSubrows+1)*25.5)+'px'});
+				$('#'+cur).show()
 		expander.innerHTML = "&ndash;";
 	} else {
-		$('#rewq').animate({height:'0px'}, {complete: function(){$('#'+row.getAttribute("sublistid")).hide();} });
+		$('#'+cur+'Inner').animate({height:'0px'}, {complete: function(){$('#'+cur).hide();} });
 		expander.innerHTML = "+";
 	}
 }
@@ -841,9 +815,15 @@ function toggleExpansion(row) {
 
 <!-- Initialization functions -->
 <script>
-	$(function() {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
+	$(function () {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
 	$(function () {$("#currency").selectbox();});
+	$("#focus").keyup(function(event){
+		if(event.keyCode == 13){
+			$("#searchButton").click();
+		}
+	});
 	updateInformation(focalNode);
+	
 </script>
 
 
