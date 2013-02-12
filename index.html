@@ -27,7 +27,7 @@
 
 <!-- top bar -->
 <input id="focus" class="light rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
-<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val());"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val(),true);"/>
 <div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
 	<select id="currency" onchange="changeCurrency(this.value);">
 		<option value="XRP">All Currencies</option>
@@ -60,7 +60,7 @@
 <!-- the table on the right -->
 <div class="bottomlist" style="width:410px; float:right;">
 <div class="scroll-pane" style="height:288px; margin-right:-22px;">
-<table class="rightbordered outertable" style="width:432px;">
+<table class="rightbordered outertable" style="width:432px;" id="transactionTable">
 	<tr class="toprow">
 		<td style="width:46px;"><div class="send icon" title="Sent money to...">&nbsp;</div></td>
 		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
@@ -124,8 +124,7 @@
 
 </div><!-- END VISUALIZATION DIV -->
 
-<table border=1 id="balanceTable"></table>
-<table id="trustLines"></table>
+<table id="transactionTable"></table>
 
 
 <!-- Javascript for the visualization, using the D3 library -->
@@ -263,7 +262,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		if ($.isEmptyObject(obj.result.account_data)) {
 			alert("This address is not valid!");
 			console.log(obj);
-			refocus(lastFocalNode);
+			refocus(lastFocalNode,true);
 		} else {
 			var n = nodes[nodeMap[obj.result.account_data.Account]];
 			n.account = obj.result.account_data;
@@ -277,8 +276,15 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 				$("#xrpBalance").text(commas(n.account.Balance/1000000));
 			}
 		}
+	} else if (obj && obj.result && obj.result.transactions) {
+		var n = nodes[nodeMap[obj.result.account]];
+		n.transactions = obj.result.transactions;
+		if (obj.result.account == focalNode) {
+			updateTransactions(focalNode);
+		}
 	} else {
 		console.log("Could not interpret message.");
+		console.log(obj);
 	}
 };
 
@@ -413,6 +419,11 @@ function serverGetInfo(address) {
 	} else {
 		command = '{"command":"account_info", "ident":"'+address+'"}'; 
 		server.socket.send(command);
+		command = '{"command":"ledger", "ledger_selector":"current"}';
+		server.socket.send(command);
+		command = '{"command":"account_tx", "account":"'+address+'", "ledger_min":"'+1+'", "ledger_max":"'+210602+'"}'; 
+		server.socket.send(command);
+		
 	}
 }
 
@@ -514,13 +525,17 @@ var force = d3.layout.force()
 function expandNode(address) {
 	lastFocalNode = focalNode;
 	focalNode = address;
-	degreeMap = {};
-	degreeMap[address] = 0;
-	reassignColors(address);
-	if (expandedNodes[address]) {} else {
-		serverGetLines(address);
+	if ("undefined" == typeof nodeMap[address]) {
+		refocus(address, false);
+	} else {
+		degreeMap = {};
+		degreeMap[address] = 0;
+		reassignColors(address);
+		if (expandedNodes[address]) {} else {
+			serverGetLines(address);
+		}
+		updateInformation(address);
 	}
-	updateInformation(address);
 }
 
 
@@ -604,6 +619,10 @@ function reassignColors(address) {
 	}
 }
 
+function colorRogueNodes() {
+	//TODO
+}
+
 
 
 
@@ -650,20 +669,24 @@ function addNodes(degree) {
 	});
 }
 
-function refocus(focus) {
-	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
-	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+function refocus(focus, erase) {
+	if (erase) {
+		svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
+		svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+		nodes = [];
+		le_links = [];
+		nodeMap = {};
+		expandedNodes = {};
+	}
 	lastFocalNode = focalNode;
 	focalNode = focus;
-	nodes = [{x:0.5*w, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
-	le_links = [];
-	nodeMap = {};
-	nodeMap[focalNode] = 0;
-	expandedNodes = {};
+	nodeMap[focalNode] = nodes.length;
+	nodes.push({x:0.5*w, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} });
 	degreeMap = {};
 	degreeMap[focalNode] = 0;
 	serverGetLines(focalNode);
 	addNodes(0);
+	reassignColors(focalNode);
 	serverGetInfo(focalNode);
 	updateInformation(focus);
 }
@@ -758,6 +781,63 @@ function updateInformation(address) {
 						'<td style="width:37px;" class="light '+(tl.limit<0 ? 'negative ' : '')+'amount right">'+commas(tl.limit)+'</td>'+
 					'</tr>');
 			}		
+		}
+	}
+	updateTransactions(address);
+}
+
+function updateTransactions(address) {
+	$('#transactionTable').text("");
+	if (nodes[nodeMap[address]].transactions) {
+		for (var i=0; i<nodes[nodeMap[address]].transactions.length; i++) {
+			var tx = nodes[nodeMap[address]].transactions[i].tx;
+			var transactionType;
+			var counterparty;
+			var amount;
+			var currency;
+			
+			if (tx.TransactionType == "Payment") {
+				amount = tx.Amount;
+				if (tx.Account == address) {
+					transactionType = "send";
+					counterparty = tx.Destination;
+				}
+				else if (tx.Destination == address) {
+					transactionType = "receive";
+					counterparty = tx.Account;
+				} else {continue;}
+			} else if (tx.TransactionType == "TrustSet") {
+				amount = tx.LimitAmount;
+				if (tx.Account == address) {
+					transactionType = "trustout";
+					counterparty = tx.LimitAmount.issuer;
+				}
+				else if (tx.LimitAmount.issuer == address) {
+					transactionType = "trustin";
+					counterparty = tx.Account;
+				} else {continue;}
+			} else if (tx.TransactionType == "OfferCreate") { continue;
+			} else if (tx.TransactionType == "OfferCancel") { continue;
+			} else {continue;}
+			
+			if (amount.currency) {
+				currency = amount.currency;
+				amount = amount.value;
+			} else {
+				currency = "XRP";
+			}
+			
+			$('#transactionTable').append(
+				'<tr>'+
+					'<td style="width:46px;"><div class="'+transactionType+' icon" title="'+transactionType+'">&nbsp;</div></td>'+
+					'<td><span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span></td>'+
+					'<td class="light address right"><span style="cursor:pointer;" '+
+							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
+							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
+							'onclick="expandNode(\''+counterparty+'\');">'+
+							abbreviate(counterparty)+'</span></td>'+
+					'<td class="marginalcell"/>'+
+				'</tr>');
 		}
 	}
 }

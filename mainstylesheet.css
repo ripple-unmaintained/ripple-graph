@@ -115,8 +115,10 @@ table.innertable tr { height:25px; }
 
 
 /* Icons */
-.send { background-image:url('icons/send.png'); }
-.receive { background-image:url('icons/receive.png'); }
+.send { background-image:url('icons/send.svg'); }
+.receive { background-image:url('icons/receive.svg'); }
+.trustin { background-image:url('icons/trustin.svg'); }
+.trustout { background-image:url('icons/trustout.svg'); }
 .icon {
 	background-repeat:no-repeat;
 	background-position:center;}
