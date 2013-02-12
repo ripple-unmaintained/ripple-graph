@@ -24,9 +24,15 @@
 
 <!-- BEGIN VISUALIZATION DIV -->
 <div id="visualization" style="position:relative; margin-left: auto; margin-right: auto;" class="fullwidth">
-
+<div class="light midsize mediumgray" style="width: 100%;
+    height: 100%;
+    position: absolute;
+    top: -72px;
+	left:35px;">
+ledger number: <span id="ledgernumber"></span><br/>
+total ripples: <span id="totalripples"></span><br/></div>
 <!-- top bar -->
-<input id="focus" class="light rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
+<input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
 <input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val(),true);"/>
 <div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
 	<select id="currency" onchange="changeCurrency(this.value);">
@@ -60,63 +66,7 @@
 <!-- the table on the right -->
 <div class="bottomlist" style="width:410px; float:right;">
 <div class="scroll-pane" style="height:288px; margin-right:-22px;">
-<table class="rightbordered outertable" style="width:432px;" id="transactionTable">
-	<tr class="toprow">
-		<td style="width:46px;"><div class="send icon" title="Sent money to...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-	
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rWWWWWWWWW...</td>
-		<td class="marginalcell"/>
-	</tr>
-	
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td/>
-	</tr>
-
-	<tr>
-		<td><div class="receive icon" title="Received money from...">&nbsp;</div></td>
-		<td><span class="bold amount small">1034.24</span> <span class="light small darkgray">USD</span></td>
-		<td class="light address right">rUS79pheNhwN6zaqD...</td>
-		<td class="marginalcell"/>
-	</tr>
-</table></div></div>
+<table class="rightbordered outertable" style="width:432px;" id="transactionTable"></table></div></div>
 
 <div class="clearboth"></div>
 
@@ -124,13 +74,13 @@
 
 </div><!-- END VISUALIZATION DIV -->
 
-<table id="transactionTable"></table>
+
 
 
 <!-- Javascript for the visualization, using the D3 library -->
 <script type="text/javascript">
 
-var param = JSON.stringify(window.location.search.replace("?","")).replace(/\W/g, '');
+var param = JSON.stringify(window.location.search.replace("?",""));
 
 var Options = {
 	server: {
@@ -140,7 +90,7 @@ var Options = {
 	}
 };
 var RECURSION_DEPTH = 1;
-var REFERENCE_NODE = 'rUS79pheNhwN6zaqD3XLiyP6R1jBTwTg4o';//'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
+var REFERENCE_NODE = 'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
 
 var COLOR_TABLE = {
 //currency  |  center  |   rim  |
@@ -204,8 +154,19 @@ var COLOR_TABLE = {
 			["#dcbfd0","#c9abbc"],
 			["#d9dae3","#dfd0d8"]]};
 			
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=');
+        if (decodeURIComponent(pair[0]) == variable) {
+            return decodeURIComponent(pair[1]);
+        }
+    }
+    return ""
+}
 
-
+var param = getQueryVariable("center").replace(/\W/g, '');
 
 if (param == "") {
 	var focalNode = REFERENCE_NODE;
@@ -263,6 +224,8 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 	} else if (obj && obj.result && obj.result.closed) {
 		currentLedger = obj.result.closed.ledger;
 		serverGetInfo(focalNode);
+		$("#ledgernumber").text(commas(parseInt(currentLedger.seqNum)));
+		$("#totalripples").text(commas(parseInt(currentLedger.totalCoins)));
 	} else if (obj && obj.result && obj.result.account_data) {
 		if ($.isEmptyObject(obj.result.account_data)) {
 			alert("This address is not valid!");
@@ -277,7 +240,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 				updateAllArrows();
 			}
 			if (obj.result.account_data.Account == focalNode) {
-				//Update the XRP listing on the table below. (But don't rewrite the whole table, because that's excessive.)
+				//Update the XRP listing on the table below. (But don't rewrite the whole table)
 				$("#xrpBalance").text(commas(n.account.Balance/1000000));
 			}
 		}
@@ -367,10 +330,11 @@ function addConnections(origin, trustLines) {
 					}
 					newNodes.push(node);
 					nodes.push(node);
+					//Only add the node if the trust line is non-zero.
+					degreeMap[account] = degreeMap[origin] + 1; 
+					serverGetInfo(account); //If this node is not on the list yet, we're going to need to get the info and trustLines for it.
+					serverGetLines(account);
 				}
-				degreeMap[account] = degreeMap[origin] + 1; 
-				serverGetInfo(account); //If this node is not on the list yet, we're going to need to get the info and trustLines for it.
-				serverGetLines(account);
 			} else {
 				var node = nodes[nodeMap[account]];
 			}
@@ -418,7 +382,7 @@ function serverGetLines(address) {
 	}
 }
 function serverGetInfo(address) {
-	if (nodes[nodeMap[address]].account.index) {
+	if (nodes[nodeMap[address]] && nodes[nodeMap[address]].account.index) {
 		// Don't do anything if we already have information about this account.
 		// TODO: Why does this never happen?
 	} else {
@@ -447,16 +411,16 @@ var svg = d3.select("#visualization")
 
 /*TODO: Fix this bug in Firefox, where the graph pans strangely when you scroll the mouse wheel. (It should do nothing.)*/
 var lastD3ZoomEvent = {scale:1, translate:[0,0]};
-var firefoxOffset = [0,0];
+var panOffset = [0,0];
 function redraw() {
 	var translation = d3.event.translate;
 	if (d3.event.scale == lastD3ZoomEvent.scale) {
-		var tx = translation[0] - firefoxOffset[0];
-		var ty = translation[1] - firefoxOffset[1];
+		var tx = translation[0] - panOffset[0];
+		var ty = translation[1] - panOffset[1];
 		linkGroup.attr("transform","translate(" + [tx,ty] + ")");
 		nodeGroup.attr("transform","translate(" + [tx,ty] + ")");
 	} else {
-		firefoxOffset = [firefoxOffset[0] + (d3.event.translate[0] - lastD3ZoomEvent.translate[0]), (firefoxOffset[1] + d3.event.translate[1] - lastD3ZoomEvent.translate[1])];
+		panOffset = [panOffset[0] + (d3.event.translate[0] - lastD3ZoomEvent.translate[0]), (panOffset[1] + d3.event.translate[1] - lastD3ZoomEvent.translate[1])];
 	}
 	lastD3ZoomEvent = jQuery.extend(true, {}, d3.event);
 }	
@@ -684,6 +648,9 @@ function addNodes(degree) {
 
 function refocus(focus, erase) {
 	if (erase) {
+		linkGroup.attr("transform","translate(" + [0,0] + ")");
+		nodeGroup.attr("transform","translate(" + [0,0] + ")");
+		panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
 		svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
 		svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
 		nodes = [];
@@ -710,12 +677,37 @@ function refocus(focus, erase) {
 function commas(number) {
     var parts = number.toString().split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	if (parts[1] && parts[1].length>5) {parts[1] = parts[1].slice(0,5)};
+	//if (parts[1] && parts[1].length>5) {parts[1] = parts[1].slice(0,5)};
     return parts.join(".");
 }
 
 function abbreviate(address) {
 	return address.slice(0,25)+"...";
+}
+
+function magnitude(factor) {
+	if (factor <= 1000000000000000) {
+		return {
+			1: '',
+			1000: 'K',
+			1000000: 'M',
+			1000000000: 'B',
+			1000000000000: 'T',
+			1000000000000000: 'Q'}[factor];
+	} else {
+		return "&times;10<sup>"+Math.round(Math.log(factor) / Math.LN10)+"</sup>";
+	}
+}
+
+function roundNumber(number) {
+	if (Math.abs(number) < 10000.00) {
+		return commas(Math.round(number*100)/100);
+	} else {
+		var logarithm = Math.floor(Math.log(Math.abs(number)) / Math.LN10);
+		var factor = Math.pow(1000,Math.floor((logarithm - 4)/3));
+		var rounded = Math.round(number/factor);
+		return commas(rounded) + magnitude(factor);
+	}
 }
 
 function updateInformation(address) {
@@ -776,10 +768,10 @@ function updateInformation(address) {
 				'</table></div></td></tr>');
 			$('#'+cur+'InnerTable').append(
 				'<tr>'+
-					'<th class="bold midsize" style="font-weight:bold; width:50%;">Address</th>'+
-					'<td class="bold midsize" style="width:16%;">Min</td>'+
-					'<td class="bold midsize center" style="width:16%">Balance</td>'+
-					'<td class="bold midsize right" style="width:16%;">Max</td>'+
+					'<th class="light midsize mediumgray" style="width:50%;">Address</th>'+
+					'<td class="light midsize mediumgray" style="width:16%;">Min</td>'+
+					'<td class="light midsize mediumgray center" style="width:16%">Balance</td>'+
+					'<td class="light midsize mediumgray right" style="width:16%;">Max</td>'+
 				'</tr>');
 			for (var j=0; j<trustLinesForCur.length; j++) {
 				var tl = trustLinesForCur[j];
@@ -790,9 +782,9 @@ function updateInformation(address) {
 							'onmouseout="darkenAddress(\''+tl.account+'\');"'+
 							'onclick="expandNode(\''+tl.account+'\');">'+
 							abbreviate(tl.account)+'</span></th>'+
-						'<td class="light '+(tl.limit_peer>0 ? 'negative ' : '')+'amount">'+commas(-1*tl.limit_peer)+'</td>'+
-						'<td style="width:37px;" class="bold '+(tl.balance<0 ? 'negative ' : '')+'amount center">'+commas(tl.balance)+'</td>'+
-						'<td style="width:37px;" class="light '+(tl.limit<0 ? 'negative ' : '')+'amount right">'+commas(tl.limit)+'</td>'+
+						'<td class="light '+(tl.limit_peer>0 ? 'negative ' : '')+'amount"><span title="'+commas(-1*tl.limit_peer)+'">'+roundNumber(-1*tl.limit_peer)+'</span></td>'+
+						'<td style="width:37px;" class="bold '+(tl.balance<0 ? 'negative ' : '')+'amount center"><span title="'+commas(tl.balance)+'">'+roundNumber(tl.balance)+'</span></td>'+
+						'<td style="width:37px;" class="light '+(tl.limit<0 ? 'negative ' : '')+'amount right"><span title="'+commas(tl.limit)+'">'+roundNumber(tl.limit)+'</span></td>'+
 					'</tr>');
 			}		
 		}
@@ -800,15 +792,26 @@ function updateInformation(address) {
 	updateTransactions(address);
 }
 
+var txAltText = {
+	"send"       :"Sent payment to...",
+	"receive"    :"Received payment from...",
+	"trustout"   :"Sent trust to...",
+	"trustin"    :"Received trust from...",
+	"offerout"   :"Made offer",
+	"offerin"    :"Accepted offer",
+	"canceloffer":"Canceled offer"};
+
 function updateTransactions(address) {
 	$('#transactionTable').text("");
 	if (nodes[nodeMap[address]].transactions) {
 		for (var i=nodes[nodeMap[address]].transactions.length-1; i>=0; i--) {
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
 			var transactionType;
-			var counterparty;
-			var amount;
-			var currency;
+			var counterparty = "";
+			var amount = null;
+			var currency = null;
+			var secondAmount = null;
+			var secondCurrency = null;
 			
 			if (tx.TransactionType == "Payment") {
 				amount = tx.Amount;
@@ -830,27 +833,43 @@ function updateTransactions(address) {
 					transactionType = "trustin";
 					counterparty = tx.Account;
 				} else {continue;}
-			} else if (tx.TransactionType == "OfferCreate") { continue;
-			} else if (tx.TransactionType == "OfferCancel") { continue;
+			} else if (tx.TransactionType == "OfferCreate") {
+				transactionType = "offerout";
+				amount = tx.TakerGets;
+				secondAmount = tx.TakerPays;
+			} else if (tx.TransactionType == "OfferCancel") {
+				continue; transactionType = "canceloffer";
 			} else {continue;}
 			
-			if (amount.currency) {
-				currency = amount.currency;
-				amount = amount.value;
-			} else {
-				currency = "XRP";
-				amount = amount/1000000;
+			if (amount) {
+				if (amount.currency) {
+					currency = amount.currency;
+					amount = amount.value;
+				} else {
+					currency = "XRP";
+					amount = amount/1000000;
+				}
 			}
 			
+			if (secondAmount) {
+				if (secondAmount.currency) {
+					secondCurrency = secondAmount.currency;
+					secondAmount = secondAmount.value;
+				} else {
+					secondCurrency = "XRP";
+					secondAmount = secondAmount/1000000;
+				}
+			}
+
 			$('#transactionTable').append(
 				'<tr>'+
-					'<td style="width:46px;"><div class="'+transactionType+' icon" title="'+transactionType+'">&nbsp;</div></td>'+
-					'<td><span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span></td>'+
-					'<td class="light address right"><span style="cursor:pointer;" '+
+					'<td style="width:46px;"><div class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+					'<td'+(counterparty==""?' colspan="2"':'')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+'</td>'+
+					(counterparty!=""?'<td class="light address right"><span style="cursor:pointer;" '+
 							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
 							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
 							'onclick="expandNode(\''+counterparty+'\');">'+
-							abbreviate(counterparty)+'</span></td>'+
+							abbreviate(counterparty)+'</span></td>' : '')+
 					'<td class="marginalcell"/>'+
 				'</tr>');
 		}

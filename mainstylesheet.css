@@ -119,6 +119,8 @@ table.innertable tr { height:25px; }
 .receive { background-image:url('icons/receive.svg'); }
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
+.offerout { background-image:url('icons/offerout.svg'); }
+.canceloffer { background-image:url('icons/canceloffer.svg'); }
 .icon {
 	background-repeat:no-repeat;
 	background-position:center;}
