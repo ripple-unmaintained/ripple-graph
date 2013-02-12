@@ -22,7 +22,7 @@
 <div class="light heading darkgray">Ripple Live Network</div>
 
 
-<!-- BEGIN VISUALIZATION DIV -->
+
 <div id="visualization" style="position:relative; margin-left: auto; margin-right: auto;" class="fullwidth">
 <div class="light midsize mediumgray" style="width: 100%;
     height: 100%;
@@ -31,7 +31,7 @@
 	left:35px;">
 ledger number: <span id="ledgernumber"></span><br/>
 total ripples: <span id="totalripples"></span><br/></div>
-<!-- top bar -->
+
 <input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
 <input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val(),true);"/>
 <div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
@@ -46,7 +46,7 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 
 
-<!-- begin information below -->
+
 <div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:369px; padding-top:16px;">
 
 <div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px;"></div>
@@ -56,28 +56,25 @@ total ripples: <span id="totalripples"></span><br/></div>
 <div class="clearboth"></div>
 <div class="fullwidth bottombordered horizontalrule"></div>
 
-<!-- the table on the left -->
 <div class="bottomlist rightbordered" style="width:490px; float:left;">
 <div class="scroll-pane" style="height:288px; margin-left:10px;">
 	<table style="width:465px; margin-top:4px;" class="outertable" id="balanceTable"></table>
 </div></div>
 
 
-<!-- the table on the right -->
 <div class="bottomlist" style="width:410px; float:right;">
 <div class="scroll-pane" style="height:288px; margin-right:-22px;">
 <table class="rightbordered outertable" style="width:432px;" id="transactionTable"></table></div></div>
 
 <div class="clearboth"></div>
 
-</div><!-- end information at the bottom -->
+</div>
 
-</div><!-- END VISUALIZATION DIV -->
-
-
+</div>
 
 
-<!-- Javascript for the visualization, using the D3 library -->
+
+
 <script type="text/javascript">
 
 var param = JSON.stringify(window.location.search.replace("?",""));
@@ -136,7 +133,7 @@ var COLOR_TABLE = {
 			["#d0e1ed","#a3c2dd"],
 			["#f2f6fa","#cee8f1"]],
 			
-	"___": [["#6566ae","#363795"], //I.e., any other currency.
+	"___": [["#6566ae","#363795"],
 /*INDIGO*/	["#7e7cbb","#5855a5"],
 			["#9896c9","#7a74b6"],
 			["#b6b4da","#9e99cb"],
@@ -177,9 +174,9 @@ if (param == "") {
 var lastFocalNode = REFERENCE_NODE;
 var currentCurrency = "XRP";
 var currentLedger = {seqNum:211147};
-var w = 935;  //Width
-var h = 1085; //Height
-var hh = 710; //Height above the bottom bar
+var w = 935; 
+var h = 1085;
+var hh = 710;
 
 var nodes = [ {x:w/2, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} }];
 var le_links = [];
@@ -201,13 +198,7 @@ str += "/";
 server.socket = new WebSocket(str);
 var expandedNodes = {};
 
-server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
-	/* //TODO: Update the graph in real time as data comes in from the streams.
-	var command = '{"command":"ledger", "ledger": "closed" , "full" : 1 }';
-	server.socket.send(command);
-	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
-	server.socket.send(command);
-	*/
+server.socket.onopen = function() {
 	command = '{"command":"ledger", "ledger_selector":"current"}';
 	server.socket.send(command);
 	lastFocalNode = REFERENCE_NODE;
@@ -215,12 +206,11 @@ server.socket.onopen = function() { //Set up the connection and subscribe to the
 	addNodes(0);
 };
 
-server.socket.onmessage = function(msg) { //Process a message received from Ripple.
+server.socket.onmessage = function(msg) {
 	var obj = jQuery.parseJSON(msg.data);
 	if (obj && obj.result && obj.result.lines) {
 		addConnections(obj.result.account, obj.result.lines);
 	} else if(obj.transaction) {
-		//TODO: Visualize the transaction.
 	} else if (obj && obj.result && obj.result.closed) {
 		currentLedger = obj.result.closed.ledger;
 		serverGetInfo(focalNode);
@@ -234,13 +224,12 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		} else {
 			var n = nodes[nodeMap[obj.result.account_data.Account]];
 			n.account = obj.result.account_data;
-			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
+			if (currentCurrency == "XRP") {
 				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
 				updated.attr("r", nodeRadius(n));
 				updateAllArrows();
 			}
 			if (obj.result.account_data.Account == focalNode) {
-				//Update the XRP listing on the table below. (But don't rewrite the whole table)
 				$("#xrpBalance").text(commas(n.account.Balance/1000000));
 			}
 		}
@@ -283,10 +272,6 @@ function currentCurrencyBalance(accountNode) {
 }
 
 function addConnections(origin, trustLines) {
-	//Receive an array of the format:
-	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
-	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
-	
 	nodes[nodeMap[origin]].trustLines = trustLines;
 	nodes[nodeMap[origin]].balances = getBalances(origin);
 
@@ -294,7 +279,7 @@ function addConnections(origin, trustLines) {
 		updateInformation(origin);
 	}
 	
-	if (currentCurrency != "XRP") { // Change the size of the circle, if we needed to wait until now to figure out its balance (i.e. we're looking at a currency other than XRP.)
+	if (currentCurrency != "XRP") {
 		svg.select("g#nodeGroup")
 			.select("circle#"+origin)
 			.attr("r", nodeRadius(nodes[nodeMap[origin]]) );
@@ -306,12 +291,8 @@ function addConnections(origin, trustLines) {
 		var newNodes = [];
 		var newLinks = [];
 		for (var i=0; i<trustLines.length; i++) {
-			// add trustLines[i]["account"] to the list of nodes, if it's not on it already.
-			// add a link from the current node to trustLines[i]["account"], if it's not there already.
 			trustLine = trustLines[i];
 			account = trustLine["account"];
-			// Fetch the node corresponding to the counterparty of this trust line,
-			// or if it's not on the list yet, create one and add it to the list.
 			if ("undefined" == typeof nodeMap[account]) {
 				if (parseFloat(trustLine.limit) != 0.0 ||  parseFloat(trustLine.limit_peer) != 0.0) {
 					nodeMap[account]=nodes.length;
@@ -330,15 +311,13 @@ function addConnections(origin, trustLines) {
 					}
 					newNodes.push(node);
 					nodes.push(node);
-					//Only add the node if the trust line is non-zero.
 					degreeMap[account] = degreeMap[origin] + 1; 
-					serverGetInfo(account); //If this node is not on the list yet, we're going to need to get the info and trustLines for it.
+					serverGetInfo(account);
 					serverGetLines(account);
 				}
 			} else {
 				var node = nodes[nodeMap[account]];
 			}
-			// Now, create links to all of the counterparties that have not been expanded (ie., had their links displayed.)
 			if (expandedNodes[account]) {} else {
 				var link={};
 				function goon(link) {
@@ -383,8 +362,6 @@ function serverGetLines(address) {
 }
 function serverGetInfo(address) {
 	if (nodes[nodeMap[address]] && nodes[nodeMap[address]].account.index) {
-		// Don't do anything if we already have information about this account.
-		// TODO: Why does this never happen?
 	} else {
 		command = '{"command":"account_info", "ident":"'+address+'"}'; 
 		server.socket.send(command);
@@ -409,7 +386,6 @@ var svg = d3.select("#visualization")
         wheel: false
     }).on("zoom", redraw)).on("mousewheel.zoom",null).on("dblclick.zoom",null);
 
-/*TODO: Fix this bug in Firefox, where the graph pans strangely when you scroll the mouse wheel. (It should do nothing.)*/
 var lastD3ZoomEvent = {scale:1, translate:[0,0]};
 var panOffset = [0,0];
 function redraw() {
@@ -509,9 +485,9 @@ function expandNode(address) {
 
 function borderColor(cur, colorDegree) {
 	if (colorDegree == 0) {
-		return "#fc0"; //It actually doesn't use the border color for the focal node.
+		return "#fc0";
 	} else {
-		return COLOR_TABLE[cur][colorDegree-1][1]; //Use the rim color of the next darkest degree.
+		return COLOR_TABLE[cur][colorDegree-1][1];
 	}
 }
 
@@ -574,8 +550,7 @@ function reassignColors(address) {
 	var colorDegree = Math.min(degreeMap[address], 3);
 	colorNodes(svg.select("g#nodeGroup").select("circle#"+address), colorDegree)
 	
-	function goon(counterparty) { // ...then reassign the colors of each counterparty too,
-		//only if the new degree is lower than the previous one (or the degree is as yet unknown)
+	function goon(counterparty) {
 		if (typeof degreeMap[counterparty] == "undefined" || degreeMap[counterparty] > degreeMap[address]+1) {
 			degreeMap[counterparty] = degreeMap[address]+1;
 			reassignColors(counterparty);
@@ -583,7 +558,7 @@ function reassignColors(address) {
 	}
 	for (var i=0; i<le_links.length; i++) {
 		var link = le_links[i];
-		if (link.source.account.Account == address) { // If this address is party to the link...
+		if (link.source.account.Account == address) {
 			goon(link.target.account.Account);
 		} else if (link.target.account.Account == address) {
 			goon(link.source.account.Account);
@@ -677,7 +652,6 @@ function refocus(focus, erase) {
 function commas(number) {
     var parts = number.toString().split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	//if (parts[1] && parts[1].length>5) {parts[1] = parts[1].slice(0,5)};
     return parts.join(".");
 }
 
@@ -928,7 +902,6 @@ function toggleExpansion(row) {
 </script>
 
 
-<!-- Initialization functions -->
 <script>
 	$(function () {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
 	$(function () {$("#currency").selectbox();});
