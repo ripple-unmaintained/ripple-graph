@@ -502,33 +502,33 @@ function findCur(d) {
 	return cur;
 }
 
+
 function lightenNodeFunction(colorDegree) {
 	return function(d) {
 		var cur = findCur(d);
-		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree+1)+")").style("stroke-width", 2).style("stroke", "#fc0" );
 	}
 }
 function darkenNodeFunction(colorDegree) {
 	return function(d) {
 		var cur = findCur(d);
-		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+		d3.select(d3.event.target).style("fill", "url(#gradient"+cur+(colorDegree)+")").style("stroke-width", (colorDegree==0?5:0.5)).style("stroke", function(d){var cur = findCur(d); return borderColor(cur,colorDegree);} );
 	}
 }
 function lightenAddress(address) {
 	if (typeof degreeMap[address] != "undefined") {
 		var colorDegree = Math.min(degreeMap[address], 3);
 		var cur = findCur(force.nodes()[nodeMap[address]]);
-		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")").style("stroke-width", 2).style("stroke", "#fc0" );
 	}
 }
 function darkenAddress(address) {
 	if (typeof degreeMap[address] != "undefined") {
 		var colorDegree = Math.min(degreeMap[address], 3);
 		var cur = findCur(force.nodes()[nodeMap[address]]);
-		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")").style("stroke-width", (colorDegree==0?5:0.5)).style("stroke", function(d){var cur = findCur(d); return borderColor(cur,colorDegree);} );
 	}
 }
-
 
 
 function colorNodes(nodeSelection, colorDegree) {
