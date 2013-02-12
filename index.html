@@ -215,6 +215,7 @@ if (param == "") {
 
 var lastFocalNode = REFERENCE_NODE;
 var currentCurrency = "XRP";
+var currentLedger = {seqNum:211147};
 var w = 935;  //Width
 var h = 1085; //Height
 var hh = 710; //Height above the bottom bar
@@ -246,9 +247,10 @@ server.socket.onopen = function() { //Set up the connection and subscribe to the
 	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
 	server.socket.send(command);
 	*/
-	serverGetInfo(focalNode);
-	expandNode(focalNode);
+	command = '{"command":"ledger", "ledger_selector":"current"}';
+	server.socket.send(command);
 	lastFocalNode = REFERENCE_NODE;
+	expandNode(focalNode);
 	addNodes(0);
 };
 
@@ -258,6 +260,9 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		addConnections(obj.result.account, obj.result.lines);
 	} else if(obj.transaction) {
 		//TODO: Visualize the transaction.
+	} else if (obj && obj.result && obj.result.closed) {
+		currentLedger = obj.result.closed.ledger;
+		serverGetInfo(focalNode);
 	} else if (obj && obj.result && obj.result.account_data) {
 		if ($.isEmptyObject(obj.result.account_data)) {
 			alert("This address is not valid!");
@@ -419,9 +424,7 @@ function serverGetInfo(address) {
 	} else {
 		command = '{"command":"account_info", "ident":"'+address+'"}'; 
 		server.socket.send(command);
-		command = '{"command":"ledger", "ledger_selector":"current"}';
-		server.socket.send(command);
-		command = '{"command":"account_tx", "account":"'+address+'", "ledger_min":"'+1+'", "ledger_max":"'+210602+'"}'; 
+		command = '{"command":"account_tx", "account":"'+address+'", "ledger_min":"'+0+'", "ledger_max":"'+currentLedger.seqNum+'"}'; 
 		server.socket.send(command);
 		
 	}
@@ -531,6 +534,7 @@ function expandNode(address) {
 		degreeMap = {};
 		degreeMap[address] = 0;
 		reassignColors(address);
+		colorRogueNodes();
 		if (expandedNodes[address]) {} else {
 			serverGetLines(address);
 		}
@@ -571,14 +575,18 @@ function darkenNodeFunction(colorDegree) {
 	}
 }
 function lightenAddress(address) {
-	var colorDegree = Math.min(degreeMap[address], 3);
-	var cur = findCur(force.nodes()[nodeMap[address]]);
-	nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+	if (typeof degreeMap[address] != "undefined") {
+		var colorDegree = Math.min(degreeMap[address], 3);
+		var cur = findCur(force.nodes()[nodeMap[address]]);
+		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")");
+	}
 }
 function darkenAddress(address) {
-	var colorDegree = Math.min(degreeMap[address], 3);
-	var cur = findCur(force.nodes()[nodeMap[address]]);
-	nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+	if (typeof degreeMap[address] != "undefined") {
+		var colorDegree = Math.min(degreeMap[address], 3);
+		var cur = findCur(force.nodes()[nodeMap[address]]);
+		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")");
+	}
 }
 
 
@@ -620,7 +628,12 @@ function reassignColors(address) {
 }
 
 function colorRogueNodes() {
-	//TODO
+	for (var address in nodeMap) {
+		if (typeof degreeMap[address] == "undefined") {
+			degreeMap[address] = Infinity;
+			colorNodes(svg.select("g#nodeGroup").select("circle#"+address), 3);
+		}
+	}	
 }
 
 
@@ -687,6 +700,7 @@ function refocus(focus, erase) {
 	serverGetLines(focalNode);
 	addNodes(0);
 	reassignColors(focalNode);
+	colorRogueNodes();
 	serverGetInfo(focalNode);
 	updateInformation(focus);
 }
@@ -789,7 +803,7 @@ function updateInformation(address) {
 function updateTransactions(address) {
 	$('#transactionTable').text("");
 	if (nodes[nodeMap[address]].transactions) {
-		for (var i=0; i<nodes[nodeMap[address]].transactions.length; i++) {
+		for (var i=nodes[nodeMap[address]].transactions.length-1; i>=0; i--) {
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
 			var transactionType;
 			var counterparty;
@@ -825,6 +839,7 @@ function updateTransactions(address) {
 				amount = amount.value;
 			} else {
 				currency = "XRP";
+				amount = amount/1000000;
 			}
 			
 			$('#transactionTable').append(
@@ -868,6 +883,7 @@ function changeCurrency(newCurrency) {
 	degreeMap = {};
 	degreeMap[focalNode] = 0;
 	reassignColors(focalNode);
+	colorRogueNodes();
 	updated = svg.select("g#nodeGroup").selectAll("circle");
 	updated.attr("r", nodeRadius );
 	svg.select("g#linkGroup").selectAll("line").attr("stroke-width", linkOrNot);
