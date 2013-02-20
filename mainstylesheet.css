@@ -46,6 +46,7 @@ body { background-color: #fff; }
 	font-size:36px;
 	text-align:center;
 	width:100%;
+	min-width: 935px;
 	padding:30px 0;}
 .large { font-size:21px; }
 .midsize { font-size:14px;}
@@ -72,6 +73,26 @@ body { background-color: #fff; }
 	top:23px; 
 	color:#333;}
 .bottomlist { height:293px; }
+#otherCurrency {
+	display:none;
+	color:#999;
+	font-style:italic;
+	outline:none;
+	position:absolute;
+	margin-top:-46px;
+	height:40px;
+	width:190px;
+	font-size:12pt;
+	line-height:0px;
+	font-family: "OpenSans-Light",
+		"Open Sans Light",
+		"HelveticaNeue-Light",
+		"Helvetica Neue Light",
+		"Helvetica Neue",
+		Helvetica,
+		Arial,
+		"Lucida Grande",
+		sans-serif;}
  
 
 /* Tables and cells */
