@@ -144,4 +144,25 @@ table.innertable tr { height:25px; }
 .canceloffer { background-image:url('icons/canceloffer.svg'); }
 .icon {
 	background-repeat:no-repeat;
-	background-position:center;}
+	background-position:center;
+	cursor:pointer;}
+	
+	
+	
+div#transactionInformation span.stringPiece {
+font-family: monospace;
+ margin-left:20px;
+
+ }
+ 
+div#transactionInformation ul {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  }
+  
+#transactionTable span.date {
+	margin-left:12px;
+	  margin-right:12px;
+}

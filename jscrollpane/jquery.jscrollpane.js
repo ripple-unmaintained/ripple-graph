@@ -280,7 +280,6 @@
 						}
 					);
 
-
 					verticalDrag.hover(
 						function()
 						{
@@ -422,7 +421,7 @@
 				if (isScrollableH && isScrollableV) {
 					var horizontalTrackHeight = horizontalTrack.outerHeight(),
 						verticalTrackWidth = verticalTrack.outerWidth();
-					verticalTrackHeight -= horizontalTrackHeight;
+					//verticalTrackHeight -= horizontalTrackHeight;
 					$(horizontalBar).find('>.jspCap:visible,>.jspArrow').each(
 						function()
 						{
