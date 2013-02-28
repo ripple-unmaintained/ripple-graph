@@ -331,7 +331,7 @@ function clickableAccountSpan(address) {
 
 function txDescription(result) {
 	var output = "<b>Amount:</b> <span class='amount'>"+
-		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount)+" XRP")+
+		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+
 		"</span><br/><b>Path:</b><ul>"+
 		(function(){
 			var output = "";
