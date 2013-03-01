@@ -178,6 +178,7 @@ var param = getQueryVariable("center").replace(/\W/g, '');
 var transaction_id = getQueryVariable("tx_id").replace(/\W/g, '');
 var viewingTransaction = (transaction_id != "");
 
+var alreadyFailed = false;
 
 if (param == "") {
 	var focalNode = REFERENCE_NODE;
@@ -282,6 +283,23 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		$("#transactionTable").css("display","none");
 		$("#transactionInformationContainer").css("display","block");
 		$("#transactionInformation").html(txDescription(obj.result));
+		if (obj.result.Amount.currency) {
+			//changeCurrency(obj.result.Amount.currency);
+			var currency = obj.result.Amount.currency;
+			var option = $("select#currency").find("option[value="+currency+"]");
+			if (option.html()) {
+				$("select#currency").selectbox("change", currency, option.html());
+			} else {
+				console.log('asdf');
+				$("select#currency").selectbox("change", "___", "SSGSGS");
+				$("#otherCurrency").attr("value",currency);
+				$('#otherCurrency').css('font-style','inherit').css('color','inherit');
+				changeCurrency("___");
+			}
+			/*console.log($("#currency").val());
+			$("#currency").val("USD");
+			console.log($("#currency").val());*/
+		}
 		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:obj.result.Account, Balance:0}, trustLines:[], balances:{} }); //
 		if (obj.result.Paths) {
 			for (var i=0; i<obj.result.Paths.length; i++) {
@@ -306,8 +324,11 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 			//expandNode(nodes[i].account.Account);
 		}
 		
-
-
+	} else if (obj.error && obj.error=="noNetwork") {
+		if (!alreadyFailed) {
+			alert("Could not connect to Ripple network - please try again later.");
+			alreadyFailed = true;
+		}
 	} else {
 		console.log("Could not interpret message.");
 		console.log(obj);
@@ -1022,7 +1043,7 @@ function updateInformation(address) {
 				var tl = trustLinesForCur[j];
 				$('#'+cur+'InnerTable').append(
 					'<tr>'+
-						'<th class="light address"><span style="cursor:pointer;overflow:hidden; text-overflow:ellipsis;" '+
+						'<th class="light address"><span style="cursor:pointer;overflow:hidden; text-overflow:ellipsis; display:block;" '+
 							'onmouseover="lightenAddress(\''+tl.account+'\');"'+
 							'onmouseout="darkenAddress(\''+tl.account+'\');"'+
 							'onclick="expandNode(\''+tl.account+'\');">'+
@@ -1110,7 +1131,7 @@ function updateTransactions(address) {
 			
 			$('#transactionTable').append(
 				'<tr>'+
-					'<td style="width:46px;"><div '+(transactionType=='send'||transactionType=='receive'?'onclick="location.href=\'?tx_id='+tx.hash+'\';"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+					'<td style="width:46px;"><div '+(transactionType=='send'||transactionType=='receive'?'onclick="location.href=\'?tx_id='+tx.hash+'\';"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
 					'<td style="width:374px;"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left">'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+
 					(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+
 					renderDate(tx.date)+'</span>'+
@@ -1162,7 +1183,7 @@ function renderDate(secondsSince2000) {
 		number = "";
 	}
 	
-	var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
+	var d = new Date(0);
 	d.setUTCSeconds(secondsSince2000+946684800);
 	return '<span class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
 }
