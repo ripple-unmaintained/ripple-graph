@@ -78,9 +78,13 @@ body { background-color: #fff; }
 	color:#999;
 	font-style:italic;
 	outline:none;
+	border:none;
+	background-color:none;
+	/*opacity:.3;*/
 	position:absolute;
-	margin-top:-46px;
-	height:40px;
+	margin-top:-44px;
+	margin-left:2px;
+	height:35px;
 	width:190px;
 	font-size:12pt;
 	line-height:0px;
@@ -165,4 +169,26 @@ div#transactionInformation ul {
 #transactionTable span.date {
 	margin-left:12px;
 	  margin-right:12px;
+}
+
+#transactionFeedTable td {
+	padding-top:12px;
+	padding-bottom:12px;
+}
+
+
+.unselectedTab {
+	font-family: "OpenSans-Light",
+		"Open Sans Light",
+		"HelveticaNeue-Light",
+		"Helvetica Neue Light",
+		"Helvetica Neue",
+		Helvetica,
+		Arial,
+		"Lucida Grande",
+		sans-serif;
+	cursor:pointer;
+}
+.unselectedTab:hover {
+	color: #36c;
 }

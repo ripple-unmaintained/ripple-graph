@@ -33,7 +33,7 @@ ledger number: <span id="ledgernumber"></span><br/>
 total ripples: <span id="totalripples"></span><br/></div>
 <!-- top bar -->
 <input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
-<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="refocus($('#focus').val(),true);"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val(),true);"/>
 <div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
 	<select id="currency" onchange="changeCurrency(this.value);">
 		<option value="XRP">All Currencies</option>
@@ -48,12 +48,273 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 
 
+<script>
+/*
+I to F
+-erase all information
+-make the feed visible
+
+I to T
+-erase all information
+-erase all nodes
+-show only the concerned nodes and links
+-show the information below
+-animate the transaction
+
+F to I
+-make feed invisible
+-show individual information
+
+F to T
+-erase all information
+-erase all nodes
+-show only the concerned nodes and links
+-show the information below
+-animate the transaction
+
+T to I
+-make transaction information invisible
+-expand the focal node
+-show tabs
+
+T to F
+(this cannot happen?)*/
+
+
+var mode = "individual";
+
+
+function changeMode(newMode, data) {
+	if (mode != newMode) {
+		if (mode=="individual") {
+			exitIndividualMode();
+		} else if (mode=="transaction") {
+			exitTransactionMode();
+		} else if (mode=="feed") {
+			exitFeedMode();
+		}
+		if (newMode=="individual") {
+			enterIndividualMode();
+		} else if (newMode=="transaction") {
+			enterTransactionMode(data);
+		} else if (newMode=="feed") {
+			enterFeedMode();
+		}
+		mode = newMode;
+	}
+}
+
+
+function eraseGraph() {
+	linkGroup.attr("transform","translate(" + [0,0] + ")");
+	nodeGroup.attr("transform","translate(" + [0,0] + ")");
+	haloGroup.attr("transform","translate(" + [0,0] + ")");
+	arrowheadGroup.attr("transform","translate(" + [0,0] + ")");
+
+	panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
+	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
+	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+	svg.select("g#haloGroup").selectAll("circle.halo")       .data([]).exit().remove();
+	svg.select("g#arrowheadGroup").selectAll("path.arrowhead")       .data([]).exit().remove();
+
+	nodes = [];
+	le_links = [];
+	nodeMap = {};
+	expandedNodes = {};
+	animatorLinks = [];
+}
+
+
+function enterFeedMode() {
+	if (mode != "feed") {
+		$("#feedTab").attr("class","bold").css("visibility","visible");
+		$("#individualTab").attr("class","unselectedTab").css("visibility","visible");
+		$("#transactionFeed").css("display","inherit");
+		$("#leftHeading").text("Live transaction feed");
+		mode = "feed";
+	}
+}
+
+function exitTransactionMode() {
+	if (mode == "transaction") {
+		//EXPAND THE FOCAL NODE
+		$("#transactionInformation").css("display","none");
+	}
+}
+
+function enterTransactionMode(tx) {
+	if (mode != "transaction") {
+		eraseGraph();
+		$("#transactionInformation").html(txDescription(tx));
+		if (tx.Amount.currency) {
+			var currency = tx.Amount.currency;
+			var option = $("select#currency").find("option[value="+currency+"]");
+			if (option.html()) {
+				$("select#currency").selectbox("change", currency, option.html());
+			} else {
+				$("select#currency").selectbox("change", "___", "SSGSGS");
+				$("#otherCurrency").attr("value",currency);
+				$('#otherCurrency').css('font-style','inherit').css('color','inherit');
+				changeCurrency("___");
+			}
+			/*console.log($("#currency").val());
+			$("#currency").val("USD");
+			console.log($("#currency").val());*/
+		}
+		var k = 0;
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
+		nodeMap[nodes[k].account.Account] = k;
+		degreeMap[nodes[k].account.Account] = 0;
+		k++;
+		if (tx.Paths) {
+			for (var i=0; i<tx.Paths.length; i++) {
+				for (var j=0; j<tx.Paths[i].length; j++) {
+					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
+						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
+						nodeMap[nodes[k].account.Account] = k;
+						degreeMap[nodes[k].account.Account] = 0;
+						k++;
+					} else {
+						console.log("We already added that node.");
+					}
+				}
+			}
+		}
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
+
+		nodeMap[nodes[k].account.Account] = k;
+		degreeMap[nodes[k].account.Account] = 0;
+		//console.log(nodes);
+		k++;
+		
+		addNodes(0);
+		for (var i=0; i<nodes.length; i++) {
+			//serverGetInfo(nodes[i].account.Account);
+			//serverGetLines(nodes[i].account.Account);
+			serverGetInfo(nodes[i].account.Account);
+			serverGetLines(nodes[i].account.Account);
+			//expandNode(nodes[i].account.Account);
+		}
+		setTimeout(function(){animateTransaction(tx);}, 2000);
+		$("#leftHeading").text("Transaction information");
+		$("#individualTab").attr("class","bold").css("visibility","hidden");
+		$("#feedTab").attr("class","unselectedTab").css("visibility","hidden");
+		$("#transactionInformation").css("display","inherit");
+		mode = "transaction";
+	}
+}
+
+function exitFeedMode() {
+	if (mode == "feed") {
+		//hide feed info...
+	}
+}
+
+function exitIndividualMode() {
+	if (mode == "individual") {
+		$("#rightHeading").text("");
+		$("#focalAddress").css("visibility","hidden");
+		$("#balanceTable").css("visibility","hidden");
+		$("#transactionTable").css("visibility","hidden");
+		$("#transactionInformationContainer").css("display","inherit");
+	}
+}
+
+function enterIndividualMode() {
+	if (mode != "individual") {
+		$("#leftHeading").text("Balances");
+		$("#rightHeading").text("History");
+		$("#focalAddress").css("visibility","visible");
+		$("#balanceTable").css("visibility","visible");
+		$("#transactionTable").css("visibility","visible");
+		$("#transactionInformationContainer").css("display","none"); //This is here because it is used by both feed and transaction modes.
+		$("#individualTab").attr("class","bold").css("visibility","visible");
+		$("#feedTab").attr("class","unselectedTab").css("visibility","visible");
+		mode = "individual";
+	}
+}
+
+
+
+
+function renderTransaction(tx) {
+	var transactionType;
+	var from = tx.Account;
+	var to = "";
+	var amount = null;
+	var currency = null;
+	var secondAmount = null;
+	var secondCurrency = null;
+	
+	if (tx.TransactionType == "Payment") {
+		amount = tx.Amount;
+		transactionType = "send";
+		to = tx.Destination;
+	} else if (tx.TransactionType == "TrustSet") {
+		amount = tx.LimitAmount;
+		transactionType = "trustout";
+		to = tx.LimitAmount.issuer;
+	} else if (tx.TransactionType == "OfferCreate") {
+		transactionType = "offerout";
+		amount = tx.TakerGets;
+		secondAmount = tx.TakerPays;
+	} else if (tx.TransactionType == "OfferCancel") {
+		transactionType = "canceloffer";
+	} else {return;}
+	
+	if (amount) {
+		if (amount.currency) {
+			currency = amount.currency;
+			amount = amount.value;
+		} else {
+			currency = "XRP";
+			amount = amount/1000000;
+		}
+	}
+	
+	if (secondAmount) {
+		if (secondAmount.currency) {
+			secondCurrency = secondAmount.currency;
+			secondAmount = secondAmount.value;
+		} else {
+			secondCurrency = "XRP";
+			secondAmount = secondAmount/1000000;
+		}
+	}
+	transactionMap[tx.hash] = tx;
+	return ('<tr>'+
+		'<td style="width:80px;">'+absoluteDate(tx.date)+'</td>'+
+		'<td>'+from+'</td>'+
+		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+
+		'<td style="min-width:40px;" colspan='+(to!="" ? '1' : '3')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+
+			(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+'</td>'+
+		(to!="" ? '<td><i class="light small darkgray">to</i></td><td>'+to+'</td>' : '')+
+		'</tr>');
+		
+		
+}
+
+
+</script>
 
 
 <!-- begin information below -->
-<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:905px; height:369px; padding-top:16px;">
+<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:934px; height:369px; padding-top:16px;">
 
-<div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px;"></div>
+<div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px; float:left;"></div>
+
+<div class="midsize mediumgray" style="float:right; width:180px;text-align:center;">
+	<span id="feedTab" class="unselectedTab" onclick="changeMode('feed');">Live transaction feed</span>
+</div>
+<div class="midsize mediumgray" style="float:right; width:150px;text-align:center;">
+	<span id="individualTab" class="bold" onclick="changeMode('individual');">Individual view</span>
+</div>
+
+
+
+<div class="clearboth"></div>
+	
 <div class="fullwidth topbordered horizontalrule"></div>
 <div class="light midsize mediumgray" id="leftHeading" style="border: none; float:left; padding-left:20px;">Balances</div>
 <div class="light midsize mediumgray" id="rightHeading" style="width:44%; border:none; float:right;">History</div>
@@ -65,7 +326,10 @@ total ripples: <span id="totalripples"></span><br/></div>
 <!-- the table on the left -->
 <div class="bottomlist rightbordered" style="width:490px; float:left;">
 <div class="scroll-pane" id="transactionInformationContainer" style="z-index:1; width:935px; height:288px; position:absolute; background-color:#fff; display:none;">
-	<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px;"></div>
+	<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;"></div>
+	<div id="transactionFeed" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;">
+		<table id="transactionFeedTable"></table>
+	</div>
 </div>
 <div class="scroll-pane" style="height:288px; margin-left:10px;">
 	<table style="width:465px; margin-top:4px;" class="outertable" id="balanceTable"></table>
@@ -73,13 +337,15 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 
 <!-- the table on the right -->
-<div class="bottomlist" style="width:410px; float:right;">
-<div class="scroll-pane" style="height:288px; margin-right:-22px;">
-<table class="rightbordered outertable" style="width:432px;" id="transactionTable"></table></div></div>
+<div class="bottomlist" style="width:435px; margin-left:500px;">
+<div class="scroll-pane" style="height:288px;width:400px; ">
+<table class=" outertable" id="transactionTable"></table></div></div>
 
 <div class="clearboth"></div>
 
 </div><!-- end information at the bottom -->
+
+
 
 </div><!-- END VISUALIZATION DIV -->
 
@@ -216,10 +482,10 @@ var expandedNodes = {};
 server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
 	/* //TODO: Update the graph in real time as data comes in from the streams.
 	var command = '{"command":"ledger", "ledger": "closed" , "full" : 1 }';
-	server.socket.send(command);
+	server.socket.send(command);*/
 	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
 	server.socket.send(command);
-	*/
+	
 	command = '{"command":"ledger", "ledger_selector":"current"}';
 	server.socket.send(command);
 	if (transaction_id && transaction_id!="") {
@@ -234,13 +500,17 @@ server.socket.onopen = function() { //Set up the connection and subscribe to the
 		addNodes(0);
 	}
 };
-
+var txx;
 server.socket.onmessage = function(msg) { //Process a message received from Ripple.
 	var obj = jQuery.parseJSON(msg.data);
 	if (obj && obj.result && obj.result.lines) {
 		addConnections(obj.result.account, obj.result.lines);
 	} else if(obj.transaction) {
-		//TODO: Visualize the transaction.
+		console.log("Got a transaction!");
+		$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
+		if (obj.transaction.TransactionType == "Payment") {
+			animateTransaction(obj.transaction);
+		}
 	} else if (obj && obj.result && obj.result.closed) {
 		currentLedger = obj.result.closed.ledger;
 		if (!viewingTransaction) {
@@ -276,53 +546,8 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 	} else if (obj && obj.result && obj.result.TransactionType) {
 		console.log("got info on transaction.");
 		console.log(obj);
-		$("#leftHeading").text("Transaction information");
-		$("#rightHeading").text("");
-		$("#focalAddress").css("visibility","hidden");
-		$("#balanceTable").css("display","none");
-		$("#transactionTable").css("display","none");
-		$("#transactionInformationContainer").css("display","block");
-		$("#transactionInformation").html(txDescription(obj.result));
-		if (obj.result.Amount.currency) {
-			//changeCurrency(obj.result.Amount.currency);
-			var currency = obj.result.Amount.currency;
-			var option = $("select#currency").find("option[value="+currency+"]");
-			if (option.html()) {
-				$("select#currency").selectbox("change", currency, option.html());
-			} else {
-				console.log('asdf');
-				$("select#currency").selectbox("change", "___", "SSGSGS");
-				$("#otherCurrency").attr("value",currency);
-				$('#otherCurrency').css('font-style','inherit').css('color','inherit');
-				changeCurrency("___");
-			}
-			/*console.log($("#currency").val());
-			$("#currency").val("USD");
-			console.log($("#currency").val());*/
-		}
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:obj.result.Account, Balance:0}, trustLines:[], balances:{} }); //
-		if (obj.result.Paths) {
-			for (var i=0; i<obj.result.Paths.length; i++) {
-				for (var j=0; j<obj.result.Paths[i].length; j++) {
-					nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:obj.result.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
-				}
-			}
-		}
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:obj.result.Destination, Balance:0}, trustLines:[], balances:{} }); //
-		for (var i=0; i<nodes.length; i++) {
-			nodeMap[nodes[i].account.Account] = i;
-			degreeMap[nodes[i].account.Account] = 0;
-		}
-
-
-		addNodes(0);
-		for (var i=0; i<nodes.length; i++) {
-			//serverGetInfo(nodes[i].account.Account);
-			//serverGetLines(nodes[i].account.Account);
-			serverGetInfo(nodes[i].account.Account);
-			serverGetLines(nodes[i].account.Account);
-			//expandNode(nodes[i].account.Account);
-		}
+		txx = obj.result;
+		changeMode("transaction", txx);
 		
 	} else if (obj.error && obj.error=="noNetwork") {
 		if (!alreadyFailed) {
@@ -399,7 +624,7 @@ function calculateArrows(d) {
 }
 
 function updateAllArrows() {
-	svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
+	//svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
 }
 
 
@@ -595,12 +820,21 @@ function defineRadialGradient(name, innerColor, outerColor) {
 		.attr("stop-color",outerColor)
 		.attr("stop-opacity","1");
 }
+
 for (var cur in COLOR_TABLE) {	
 	var shades = COLOR_TABLE[cur];
 	for (var i=0; i<shades.length; i++) {
 		defineRadialGradient("gradient"+cur+i, shades[i][0], shades[i][1]);
 	}
 }
+
+/*
+for (var cur in COLOR_TABLE) {	
+	var shades = COLOR_TABLE[cur];
+	for (var i=0; i<shades.length; i++) {
+		defineRadialGradient("gradient"+cur+i, shades[i][0], shades[i][0]);
+	}
+}/**/
 
 
 /*
@@ -619,6 +853,42 @@ defs.append("svg:marker")
 	.attr("d", "M 0 0 L 10 5 L 0 10 z");
 }
 */
+
+function defineFilter(name, red, green, blue) {
+	var filter = defs.append("filter").attr("id",name).attr("x","-200%").attr("y","-200%").attr("width","800%").attr("height","800%");
+	var fct = filter.append("feComponentTransfer").attr("in","SourceAlpha");
+	fct.append("feFuncR").attr("type","discrete").attr("tableValues",red);
+	fct.append("feFuncG").attr("type","discrete").attr("tableValues",green);
+	fct.append("feFuncB").attr("type","discrete").attr("tableValues",blue);
+	filter.append("feGaussianBlur").attr("stdDeviation","20");
+	filter.append("feOffset").attr("dx","0").attr("dy","0").attr("result","shadow");
+	filter.append("feComposite").attr("in","SourceGraphic").attr("in2","shadow").attr("operator","over");
+}
+
+var HEX_TO_PERCENT = {
+	"0":0,"a":0.67,"f":1
+}
+
+var HIGH_SATURATION_COLORS = {
+	"__N": "#f00", //RED	
+	"BTC": "#fa0", //ORANGE
+	"JPY": "#af0", //YELLOW
+	"USD": "#0f0", //LIME
+	"AUD": "#0fa", //GREEN
+	"XRP": "#0af", //BLUE
+	"___": "#00f", //INDIGO
+	"CAD": "#a0f", //VIOLET
+	"EUR": "#f0a"  //PINK
+}
+
+for (cur in HIGH_SATURATION_COLORS) {
+	var red = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(1)];
+	var green = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(2)];
+	var blue = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(3)];
+	defineFilter("shine"+cur, red, green, blue);
+}
+
+
 
 var haloGroup = svg.append("g").attr("id","haloGroup");
 var linkGroup = svg.append("g").attr("id","linkGroup");
@@ -645,16 +915,12 @@ var force = d3.layout.force()
 	}).friction(0.5)
 	.charge(-1500).nodes([]).links([]).start();
 
-function expandNode(address) {
-	/* Reset away from transaction mode*/
-	$("#leftHeading").text("Balances");
-	$("#rightHeading").text("History");
-	$("#focalAddress").css("visibility","visible");
-	$("#balanceTable").css("display","table");
-	$("#transactionTable").css("display","table");
-	$("#transactionInformationContainer").css("display","none");
-	/* Done resetting */
+	
 
+
+
+function expandNode(address) {
+	changeMode("individual");
 	lastFocalNode = focalNode;
 	focalNode = address;
 	if ("undefined" == typeof nodeMap[address]) {
@@ -790,6 +1056,155 @@ function colorRogueNodes() {
 
 
 
+function lineLength(lineElement) {
+	return Math.sqrt(Math.pow(lineElement.attr("x1")-lineElement.attr("x2"),2) + Math.pow(lineElement.attr("y1")-lineElement.attr("y2"),2));
+}
+
+function shine(onOrOff, address, cur) {
+	$("#"+address).attr("filter",(onOrOff ? "url(#shine"+cur+")" : "none"));
+}
+
+
+
+var animatorLinks = [];
+
+
+
+function animateLink(onOrOff, speed, from, to, cur, callback) {
+	if (typeof nodeMap[from] == "undefined" || typeof nodeMap[to] == "undefined") {
+		setTimeout(callback, 10.0/speed);
+	} else {
+		var animator = $("#" + from + "_" + to + "_" + cur);
+		if (animator.length == 0) {
+			/*console.log(le_links[0]);
+			console.log(from);
+			console.log(to);
+			console.log(nodes[nodeMap[from]]);
+			console.log(nodes[nodeMap[to]]);*/
+			animatorLinks.push({source:nodes[nodeMap[from]], target:nodes[nodeMap[to]], value:100, currency:currency, strength:0});
+			var alink = svg.select("g#linkGroup").selectAll("line.animator").data(animatorLinks)
+				.enter().append("svg:line")
+				.attr("x1", function(d){ return d.source.x; })
+				.attr("y1", function(d){ return d.source.y; })
+				.attr("x2", function(d){ return d.target.x; })
+				.attr("y2", function(d){ return d.target.y; })
+				.attr("class", "animator")
+				.attr("id", from + "_" + to + "_" + cur )
+				.style("stroke",function(d){ return HIGH_SATURATION_COLORS[cur];} )
+				.style("z-index","2")
+				.style("stroke-dasharray","0,999999")
+				//.style("display","none")
+				.attr("stroke-width", 10);
+			animator = $("#" + from + "_" + to + "_" + cur);
+		}
+
+		animator.css("display","inherit");
+		var pct = 1;
+		var interval = setInterval( function(){
+			var len = lineLength(animator) * (1-pct);
+			if (onOrOff == true) { //If we're turning it on
+				animator.css("stroke-dasharray",len+", 999999");
+			} else { //If we're turning it off
+				animator.css("stroke-dasharray","0, "+len+", 999999");
+			}
+			pct -= speed;
+			if (pct <= 0) {
+				if (onOrOff == true) {
+					animator.css("stroke-dasharray","");
+				} else {
+					animator.css("display","none");
+				}
+				//console.log('done with link');
+				clearInterval(interval);
+				callback();
+			}
+		}, 10 );
+	}
+}
+
+
+function animateTransaction(tx) {
+	var cur;
+	if (tx.Amount.currency) {
+		cur = tx.Amount.currency;
+		if(!HIGH_SATURATION_COLORS.hasOwnProperty(cur)) {cur = "___";}
+	} else {
+		cur = "XRP";
+	}
+	shine(true, tx.Account, cur);
+	
+	var pathList;
+	if (tx.Paths) {
+		pathList = tx.Paths;
+		for (var i=0; i<tx.Paths.length; i++) {
+			animatePath(true, i);
+		}
+	} else {
+		pathList = [[]];
+		animatePath(true, 0);
+	}
+	
+	function animatePath(onOrOff, i) {
+		if (i==pathList.length) {
+			console.log("Done with every path!");
+		} else {
+			var path = pathList[i];
+			var lastNode = tx.Account;
+			var nextNode;
+			var speed = 0.01 * (path.length + 1);
+			function animatePathLink(j) {
+				if (j==path.length) {
+					animateLink(onOrOff, speed, lastNode, tx.Destination, cur, function(){shine(onOrOff, tx.Destination, cur); if(onOrOff) {shine(false, tx.Account); animatePath(false, i);} });
+				} else {
+					nextNode = path[j].account;
+
+					animateLink(onOrOff, speed, lastNode, nextNode, cur, function(){shine(onOrOff, nextNode, cur); animatePathLink(j+1)});
+					lastNode = nextNode;
+				}
+			}
+			animatePathLink(0);
+		}
+	}
+
+	
+	
+}
+
+
+/*
+function animateTransaction(tx) {
+	shine(tx.Account);
+	for (var i=0; i<tx.Paths.length; i++) {  ///  1; i++ ) {//
+		var path = tx.Paths[i];
+		var lastNode = tx.Account;
+		var nextNode;
+		var cur;
+		function animatePathLink(j) {
+			if (j==path.length) {
+				animateLink(lastNode, tx.Destination, cur, function(){shine(tx.Destination); console.log("Done with one path.");});
+			} else {
+				nextNode = path[j].account;
+				cur = path[j].currency;
+				animateLink(lastNode, nextNode, cur, function(){shine(nextNode); animatePathLink(j+1)});
+				lastNode = nextNode;
+			}
+		}
+		animatePathLink(0);
+	}
+}
+*/
+
+
+
+
+var lastNodeTouched = "";
+
+function stopExpandResume(d) {
+	force.stop();
+	expandNode(d.account.Account);
+	setTimeout(force.resume,500);
+}
+
 function addNodes(degree) {
 
 	force.nodes(nodes).links(le_links);
@@ -804,19 +1219,34 @@ function addNodes(degree) {
 		.attr("r", nodeRadius )
 		.attr("title", function(d) { return d.account.Account; })
 		.style("cursor", "pointer")
-		.on("click", function(d) { force.stop(); expandNode(d.account.Account); setTimeout(force.resume,500); } );
+		.on("touchstart", function() {  } )
+		.on("touchmove", function(d) { lastNodeTouched=d.account.Account; } )
+		.on("touchend", function(d) { if (lastNodeTouched != d.account.Account) {stopExpandResume(d); lastNodeTouched=d.account.Account;} else {lastNodeTouched="";} } )
+		.on("click", stopExpandResume );
 	colorNodes(node, colorDegree);
 	node.append("svg:title").text( function(d) { return d.account.Account;} );
 	node.call(force.drag);
 	
+	
 
-	var link = svg.select("g#linkGroup").selectAll("line").data(force.links())
+	var link = svg.select("g#linkGroup").selectAll("line.static").data(force.links())
 		.enter().append("svg:line")
+		.attr("class","static")
 		.style("stroke","#000")
 		.style("opacity","0.2")
-		.attr("stroke-width", linkOrNot)
-		.attr("marker-end", calculateArrows);
-		
+		.attr("stroke-width", linkOrNot);
+		//.attr("marker-end", calculateArrows);
+	
+/*
+	var alink = svg.select("g#linkGroup").selectAll("line.animator").data(force.links())
+		.enter().append("svg:line")
+		.attr("class", "animator")
+		.attr("id", function(d) {return d.source.account.Account + "_" + d.target.account.Account + "_" + d.currency} )
+		.style("stroke","#0f0")
+		.style("stroke-dasharray","0,99999")
+		.style("display","none")
+		.attr("stroke-width", linkOrNot);*/
+
 	function arrowheadPath(radius, theta) {
 		var rCosTheta = radius*Math.cos(theta);
 		var rSinTheta = radius*Math.sin(theta);
@@ -856,6 +1286,7 @@ function addNodes(degree) {
 	}
 	
 	function setArrowheads(selection) {
+		//return selection;
 		return selection
 			.attr("transform", function(d) {
 				var position = d.source; //projection(parseFloat($("#"+d.source.account.Account).attr("r")), d.source, d.target);
@@ -886,11 +1317,14 @@ function addNodes(degree) {
 	force.start();
   
 
-	var node = svg.selectAll("circle.node");
-	var link = svg.selectAll("line");
-	var halo = svg.selectAll("circle.halo");
-	var arrowhead = svg.selectAll("path.arrowhead");
+
+	
+	//var tickTime = new Date().getTime();
 	force.on("tick", function(e) {
+		var node = svg.selectAll("circle.node");
+		var halo = svg.selectAll("circle.halo");
+		var arrowhead = svg.selectAll("path.arrowhead");
+		var link = svg.selectAll("line");
 		node.attr("cx", function(d) { return d.x; })
 			.attr("cy", function(d) { return d.y; });
 		link.attr("x1", function(d) {return d.source.x;})
@@ -900,27 +1334,17 @@ function addNodes(degree) {
 		halo.attr("cx", function(d) { return d.x; })
 			.attr("cy", function(d) { return d.y; });
 		setArrowheads(arrowhead);
+		
+		/*var newTickTime = new Date().getTime();
+		console.log("TICK TIME:", newTickTime - tickTime);
+		tickTime = newTickTime;*/
 
 	});
 }
 
 function refocus(focus, erase) {
 	if (erase) {
-		linkGroup.attr("transform","translate(" + [0,0] + ")");
-		nodeGroup.attr("transform","translate(" + [0,0] + ")");
-		haloGroup.attr("transform","translate(" + [0,0] + ")");
-		arrowheadGroup.attr("transform","translate(" + [0,0] + ")");
-
-		panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
-		svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
-		svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
-		svg.select("g#haloGroup").selectAll("circle.halo")       .data([]).exit().remove();
-		svg.select("g#arrowheadGroup").selectAll("path.arrowhead")       .data([]).exit().remove();
-
-		nodes = [];
-		le_links = [];
-		nodeMap = {};
-		expandedNodes = {};
+		eraseGraph();
 	}
 	lastFocalNode = focalNode;
 	focalNode = focus;
@@ -1067,6 +1491,11 @@ var txAltText = {
 	"offerin"    :"Accepted offer",
 	"canceloffer":"Canceled offer"};
 
+function showTransactionWithHash(hash) {
+	changeMode("transaction",transactionMap[hash]);
+}
+var transactionMap = {};
+	
 function updateTransactions(address) {
 	$('#transactionTable').text("");
 	
@@ -1129,12 +1558,15 @@ function updateTransactions(address) {
 			}
 			
 			
+			transactionMap[tx.hash] = tx;
+
+			
 			$('#transactionTable').append(
 				'<tr>'+
-					'<td style="width:46px;"><div '+(transactionType=='send'||transactionType=='receive'?'onclick="location.href=\'?tx_id='+tx.hash+'\';"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+					'<td style="width:46px;"><div '+(transactionType=='send'||transactionType=='receive'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
 					'<td style="width:374px;"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left">'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+
 					(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+
-					renderDate(tx.date)+'</span>'+
+					agoDate(tx.date)+'</span>'+
 					(counterparty!=""?'<span style="display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis;" class="light address right"><span style="cursor:pointer;" '+
 							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
 							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
@@ -1146,7 +1578,7 @@ function updateTransactions(address) {
 	}
 }
 
-function renderDate(secondsSince2000) {
+function agoDate(secondsSince2000) {
 	var currentTime = new Date().getTime() / 1000 - 946684800;
 	var secondsAgo = currentTime-parseInt(secondsSince2000);
 	var number;
@@ -1155,7 +1587,7 @@ function renderDate(secondsSince2000) {
 		number = 0;
 		unit = "moment";
 	} else if (secondsAgo < 60) {
-		number = secondsAgo;
+		number = Math.floor(secondsAgo);
 		unit = "second";
 	} else if (secondsAgo < 3600) {
 		number = Math.floor(secondsAgo/60);
@@ -1186,6 +1618,12 @@ function renderDate(secondsSince2000) {
 	var d = new Date(0);
 	d.setUTCSeconds(secondsSince2000+946684800);
 	return '<span class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
+}
+
+function absoluteDate(secondsSince2000) {
+	var d = new Date(0);
+	d.setUTCSeconds(secondsSince2000+946684800);
+	return '<span class="light small mediumgray date" title="'+d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds())+'">'+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+'</span>';
 }
 
 
@@ -1238,7 +1676,7 @@ function changeCurrency(newCurrency) {
 		updated = svg.select("g#nodeGroup").selectAll("circle.node");
 		updated.attr("r", nodeRadius );
 		svg.select("g#haloGroup").selectAll("circle.halo").attr("r", function(d){return HALO_MARGIN+nodeRadius(d);} );
-		svg.select("g#linkGroup").selectAll("line").attr("stroke-width", linkOrNot);
+		svg.select("g#linkGroup").selectAll("line.static").attr("stroke-width", linkOrNot);
 		updateAllArrows();
 		force.start();
 	}
