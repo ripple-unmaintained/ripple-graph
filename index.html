@@ -89,7 +89,7 @@ T to I
 
 T to F
 (this cannot happen?)*/
-
+var senderAddress;
 
 var mode = "individual";
 
@@ -104,7 +104,7 @@ function changeMode(newMode, data) {
 			exitFeedMode();
 		}
 		if (newMode=="individual") {
-			enterIndividualMode();
+			enterIndividualMode(data);
 		} else if (newMode=="transaction") {
 			enterTransactionMode(data);
 		} else if (newMode=="feed") {
@@ -139,8 +139,8 @@ function eraseGraph() {
 
 function enterFeedMode() {
 	if (mode != "feed") {
-		$("#feedTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
-		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
+		$("#feedTab").removeClass("unselectedTab").addClass("selectedTab");//.css("visibility","visible");
+		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","visible");
 		$("#transactionFeed").css("display","inherit");
 		$("#leftHeading").text("Live transaction feed");
 		mode = "feed";
@@ -173,6 +173,7 @@ function enterTransactionMode(tx) {
 			$("#currency").val("USD");
 			console.log($("#currency").val());*/
 		}
+		senderAddress = tx.Account;
 		var k = 0;
 		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
 		nodeMap[nodes[k].account.Account] = k;
@@ -209,8 +210,8 @@ function enterTransactionMode(tx) {
 		}
 		setTimeout(function(){animateTransaction(tx);}, 2000);
 		$("#leftHeading").text("Transaction information");
-		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","hidden");
-		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","hidden");
+		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
+		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
 		$("#transactionInformation").css("display","inherit");
 		mode = "transaction";
 	}
@@ -232,7 +233,7 @@ function exitIndividualMode() {
 	}
 }
 
-function enterIndividualMode() {
+function enterIndividualMode(data) {
 	if (mode != "individual") {
 		$("#leftHeading").text("Balances");
 		$("#rightHeading").text("History");
@@ -242,6 +243,10 @@ function enterIndividualMode() {
 		$("#transactionInformationContainer").css("display","none"); //This is here because it is used by both feed and transaction modes.
 		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
 		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
+		if (data) {
+			expandNode(data);
+			senderAddress = false;
+		}
 		mode = "individual";
 	}
 }
@@ -315,7 +320,7 @@ function renderTransaction(tx) {
 <div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:704px; left:1.3px; width:934px; height:401px; border-top: 1px solid #c8c8c8;">
 
 <div class="tab midsize mediumgray unselectedTab" style="margin-top:-36px; margin-left:140px;" onclick="changeMode('feed');" id="feedTab">Network feed</div>
-<div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1.25px;" onclick="changeMode('individual');">Wallet info</div>
+<div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1.25px;" onclick="changeMode('individual',senderAddress);">Wallet info</div>
 
 
 <div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; margin-top:13px; padding-left:20px; float:left;"></div>
@@ -388,7 +393,7 @@ function renderTransaction(tx) {
 
 var Options = {
 	server: {
-		"websocket_ip" : "184.73.226.101",
+		"websocket_ip" : "s2.ripple.com", //"s1.ripple.com", //
 		"websocket_port" : 51233,
 		"websocket_ssl" : false
 	}
@@ -523,6 +528,7 @@ server.socket.onopen = function() { //Set up the connection and subscribe to the
 		nodeMap = {};
 		degreeMap = {};
 		nodes = [];
+		//transaction_id = "5B91AA43F9D8671906644227CE9E8A60CEB82A9C2E51083D6E35070023CEAE07";
 		command= '{"command":"tx", "transaction":"'+transaction_id+'"}';
 		server.socket.send(command);
 	} else {
@@ -579,11 +585,19 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		console.log(obj);
 		txx = obj.result;
 		changeMode("transaction", txx);
-		
-	} else if (obj.error && obj.error=="noNetwork") {
-		if (!alreadyFailed) {
-			alert("Could not connect to Ripple network - please try again later.");
-			alreadyFailed = true;
+	} else if (obj.error) {
+		if (obj.error=="noNetwork") {
+			if (!alreadyFailed) {
+				alert("Could not connect to Ripple network - please try again later.");
+				alreadyFailed = true;
+			}
+		} else if (obj.error=="txnNotFound") {	
+			$("#loading").text("Transaction not found!").css("color","#a00");
+		} else if (obj.error=="actNotFound" || obj.error=="actMalformed") {	
+			$("#loading").text("Account not found!").css("color","#a00");
+		} else {
+			console.log("An unknown error occured.");
+			console.log(obj);
 		}
 	} else {
 		console.log("Could not interpret message.");
