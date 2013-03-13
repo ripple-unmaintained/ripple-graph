@@ -46,6 +46,16 @@ total ripples: <span id="totalripples"></span><br/></div>
 	<input type="text" id="otherCurrency" value="other" class=" sbSelector sbHolder" onfocus="focusOtherCurrency(this);" onblur="blurOtherCurrency(this);" />
 </div>
 
+<div style="position:absolute; left:35px; top:80px; opacity:.8;">
+<input style="width:25px; height:25px; font-size:15pt;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
+<input style="width:25px; height:25px; font-size:15pt;" type="button" value="&ndash;" onclick="zoomOut();"/>
+</div>
+
+<div id="loading" class="light large" style="color:#aaa; position:absolute; left:390px; top:100px; line-height:50px;">
+	<img src="throbber5.gif" style="vertical-align: middle;" width=50 height=50 />
+	Loading...
+</div>
+
 
 
 <script>
@@ -106,29 +116,31 @@ function changeMode(newMode, data) {
 
 
 function eraseGraph() {
-	linkGroup.attr("transform","translate(" + [0,0] + ")");
-	nodeGroup.attr("transform","translate(" + [0,0] + ")");
-	haloGroup.attr("transform","translate(" + [0,0] + ")");
-	arrowheadGroup.attr("transform","translate(" + [0,0] + ")");
+	zoomLevel = 1;
+	translationX = 0;
+	translationY = 0;
+	panAndZoom();
+	$("#zoomInButton").attr("disabled","disabled");
 
 	panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
 	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
 	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
-	svg.select("g#haloGroup").selectAll("circle.halo")       .data([]).exit().remove();
-	svg.select("g#arrowheadGroup").selectAll("path.arrowhead")       .data([]).exit().remove();
-
+	svg.select("g#haloGroup").selectAll("circle.halo").data([]).exit().remove();
+	svg.select("g#arrowheadGroup").selectAll("path.arrowhead").data([]).exit().remove();
+	
 	nodes = [];
 	le_links = [];
 	nodeMap = {};
 	expandedNodes = {};
 	animatorLinks = [];
+	$("#loading").css("display","block");
 }
 
 
 function enterFeedMode() {
 	if (mode != "feed") {
-		$("#feedTab").attr("class","bold").css("visibility","visible");
-		$("#individualTab").attr("class","unselectedTab").css("visibility","visible");
+		$("#feedTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
+		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
 		$("#transactionFeed").css("display","inherit");
 		$("#leftHeading").text("Live transaction feed");
 		mode = "feed";
@@ -197,8 +209,8 @@ function enterTransactionMode(tx) {
 		}
 		setTimeout(function(){animateTransaction(tx);}, 2000);
 		$("#leftHeading").text("Transaction information");
-		$("#individualTab").attr("class","bold").css("visibility","hidden");
-		$("#feedTab").attr("class","unselectedTab").css("visibility","hidden");
+		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","hidden");
+		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","hidden");
 		$("#transactionInformation").css("display","inherit");
 		mode = "transaction";
 	}
@@ -206,7 +218,7 @@ function enterTransactionMode(tx) {
 
 function exitFeedMode() {
 	if (mode == "feed") {
-		//hide feed info...
+		$("#transactionFeed").css("display","none");
 	}
 }
 
@@ -228,8 +240,8 @@ function enterIndividualMode() {
 		$("#balanceTable").css("visibility","visible");
 		$("#transactionTable").css("visibility","visible");
 		$("#transactionInformationContainer").css("display","none"); //This is here because it is used by both feed and transaction modes.
-		$("#individualTab").attr("class","bold").css("visibility","visible");
-		$("#feedTab").attr("class","unselectedTab").css("visibility","visible");
+		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
+		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
 		mode = "individual";
 	}
 }
@@ -284,12 +296,12 @@ function renderTransaction(tx) {
 	transactionMap[tx.hash] = tx;
 	return ('<tr>'+
 		'<td style="width:80px;">'+absoluteDate(tx.date)+'</td>'+
-		'<td>'+from+'</td>'+
+		'<td>'+clickableAccountSpan(from)+'</td>'+
 		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
 
-		'<td style="min-width:40px;" colspan='+(to!="" ? '1' : '3')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+
-			(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+'</td>'+
-		(to!="" ? '<td><i class="light small darkgray">to</i></td><td>'+to+'</td>' : '')+
+		'<td style="min-width:40px;" colspan='+(to!="" ? '1' : '3')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span>'+
+			(secondAmount?' <i class="light small darkgray">for</i>&nbsp;<span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+'</td>'+
+		(to!="" ? '<td><i style="margin-left:5px; margin-right:5px;" class="light small darkgray">to</i></td><td>'+clickableAccountSpan(to)+'</td>' : '')+
 		'</tr>');
 		
 		
@@ -300,20 +312,18 @@ function renderTransaction(tx) {
 
 
 <!-- begin information below -->
-<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:701px; left:1.3px; width:934px; height:369px; padding-top:16px;">
+<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:704px; left:1.3px; width:934px; height:401px; border-top: 1px solid #c8c8c8;">
 
-<div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; padding-left:20px; float:left;"></div>
+<div class="tab midsize mediumgray unselectedTab" style="margin-top:-36px; margin-left:140px;" onclick="changeMode('feed');" id="feedTab">Network feed</div>
+<div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1.25px;" onclick="changeMode('individual');">Wallet info</div>
 
-<div class="midsize mediumgray" style="float:right; width:180px;text-align:center;">
-	<span id="feedTab" class="unselectedTab" onclick="changeMode('feed');">Live transaction feed</span>
-</div>
-<div class="midsize mediumgray" style="float:right; width:150px;text-align:center;">
-	<span id="individualTab" class="bold" onclick="changeMode('individual');">Individual view</span>
-</div>
 
+<div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; margin-top:13px; padding-left:20px; float:left;"></div>
 
 
 <div class="clearboth"></div>
+
+
 	
 <div class="fullwidth topbordered horizontalrule"></div>
 <div class="light midsize mediumgray" id="leftHeading" style="border: none; float:left; padding-left:20px;">Balances</div>
@@ -329,6 +339,27 @@ function renderTransaction(tx) {
 	<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;"></div>
 	<div id="transactionFeed" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;">
 		<table id="transactionFeedTable"></table>
+		
+		<!--
+		
+		
+<table id="transactionFeedTable" border=1><tbody>
+
+<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:10:40">12 Mar 2013</span></td><td>rLju3NgFJn9jZuiyibyJM7asTVeVoueWWF</td><td style="width:40px;"><div onclick="showTransactionWithHash('90D7361B94627CD8CB5CB1B1132A77B86BDD51FDACFCE21C749769B0DF574AB9')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td colspan="1"><span class="bold amount small">5</span>&nbsp;<span class="light small darkgray">CAD</span></td><td><i class="light small darkgray">to</i></td><td>rhKJE9kFPz6DuK4KyL2o8NkCCNPKnSQGRL</td></tr>
+
+<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:09:00">12 Mar 2013</span></td><td>rnLkaEfjiiyLKkKwUrjYxWNuysB2z7ja2Z</td><td style="width:40px;"><div class="trustout icon" title="Sent trust to...">&nbsp;</div></td><td colspan="1"><span class="bold amount small">1,500</span>&nbsp;<span class="light small darkgray">USD</span></td><td><i class="light small darkgray">to</i></td><td>rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B</td></tr>
+
+<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:05:40">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('C26AA6B4F7C3B9F55E17CD0D11F12032A1C7AD2757229FFD277C9447A8815E6E')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style=colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i style="margin-right:5px; margin-left:5px;" class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
+
+<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:04:50">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('6F82082118E721D29BAD9148DE0B2CFE2A0ADE10265F95477FAE736895EB2F1D')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style= colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
+
+<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:04:20">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('58C465FB227719F6DC73AA635A62499D6B6DEE8B85229D1524AE2929D45EDF13')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style= colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
+
+</tbody></table>
+		
+		-->
+		
+		
 	</div>
 </div>
 <div class="scroll-pane" style="height:288px; margin-left:10px;">
@@ -640,6 +671,7 @@ function currentCurrencyBalance(accountNode) {
 }
 
 function addConnections(origin, trustLines) {
+	$("#loading").css("display","none");
 	//Receive an array of the format:
 	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
 	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
@@ -784,23 +816,58 @@ var svg = d3.select("#visualization")
         wheel: false
     }).on("zoom", redraw)).on("mousewheel.zoom",null).on("dblclick.zoom",null);
 
+var zoomLevel = 1;
+var translationX = 0;
+var translationY = 0;
 /*TODO: Fix this bug in Firefox, where the graph pans strangely when you scroll the mouse wheel. (It should do nothing.)*/
 var lastD3ZoomEvent = {scale:1, translate:[0,0]};
 var panOffset = [0,0];
 function redraw() {
 	var translation = d3.event.translate;
 	if (d3.event.scale == lastD3ZoomEvent.scale) {
-		var tx = translation[0] - panOffset[0];
-		var ty = translation[1] - panOffset[1];
-		linkGroup.attr("transform","translate(" + [tx,ty] + ")");
-		nodeGroup.attr("transform","translate(" + [tx,ty] + ")");
-		haloGroup.attr("transform","translate(" + [tx,ty] + ")");
-		arrowheadGroup.attr("transform","translate(" + [tx,ty] + ")");
+		translationX = translation[0] - panOffset[0];
+		translationY = translation[1] - panOffset[1];
+		panAndZoom();
 	} else {
 		panOffset = [panOffset[0] + (d3.event.translate[0] - lastD3ZoomEvent.translate[0]), (panOffset[1] + d3.event.translate[1] - lastD3ZoomEvent.translate[1])];
 	}
 	lastD3ZoomEvent = jQuery.extend(true, {}, d3.event);
 }	
+
+
+function zoomOut() {
+	if (zoomLevel >= 1) {
+		$("#zoomInButton").removeAttr("disabled");
+	}
+
+	translationX += (w/8 * zoomLevel);
+	translationY += (hh/8 * zoomLevel);
+	panOffset[0] -= (w/8 * zoomLevel);
+	panOffset[1] -= (hh/8 * zoomLevel);
+	zoomLevel *= 0.75;
+	panAndZoom();
+}
+
+function zoomIn() {
+
+	zoomLevel /= 0.75;
+	if (zoomLevel >= 1) {
+		zoomLevel = 1;
+		$("#zoomInButton").attr("disabled","disabled");
+	}
+	translationX -= (w/8 * zoomLevel);
+	translationY -= (hh/8 * zoomLevel);
+	panOffset[0] += (w/8 * zoomLevel);
+	panOffset[1] += (hh/8 * zoomLevel);
+	panAndZoom();
+}
+
+function panAndZoom() {
+	linkGroup.attr     ("transform","translate(" + [translationX,translationY] + "),scale("+zoomLevel+")");
+	nodeGroup.attr     ("transform","translate(" + [translationX,translationY] + "),scale("+zoomLevel+")");
+	haloGroup.attr     ("transform","translate(" + [translationX,translationY] + "),scale("+zoomLevel+")");
+	arrowheadGroup.attr("transform","translate(" + [translationX,translationY] + "),scale("+zoomLevel+")");
+}
 
 var defs = svg.append("defs");
 

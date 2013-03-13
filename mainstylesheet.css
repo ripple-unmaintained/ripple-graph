@@ -140,16 +140,15 @@ table.innertable tr { height:25px; }
 
 
 /* Icons */
-.send { background-image:url('icons/send.svg'); }
-.receive { background-image:url('icons/receive.svg'); }
+.send { background-image:url('icons/send.svg'); cursor:pointer;}
+.receive { background-image:url('icons/receive.svg'); cursor:pointer;}
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
 .offerout { background-image:url('icons/offerout.svg'); }
 .canceloffer { background-image:url('icons/canceloffer.svg'); }
 .icon {
 	background-repeat:no-repeat;
-	background-position:center;
-	cursor:pointer;}
+	background-position:center;}
 	
 	
 	
@@ -188,7 +187,35 @@ div#transactionInformation ul {
 		"Lucida Grande",
 		sans-serif;
 	cursor:pointer;
+	color: #666;
+	background-color: none;
 }
+/*
 .unselectedTab:hover {
 	color: #36c;
+}*/
+
+.selectedTab {
+	font-weight: bold;
+	font-family: "OpenSans-Bold",
+		"Open Sans Bold",
+		"HelveticaNeue-Bold",
+		"Helvetica Neue Bold",
+		"Helvetica Neue",
+		Helvetica,
+		Arial,
+		"Lucida Grande",
+		sans-serif;
+	color: #000;
+	background-color:#fff;
+	border-left: 1px solid #c8c8c8;
+	border-top: 1px solid #c8c8c8;
+	border-right: 1px solid #c8c8c8;
+}
+
+.tab {
+	width:140px;
+	height:35px;
+	text-align:center;
+	line-height:35px;
 }
