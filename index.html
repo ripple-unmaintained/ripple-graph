@@ -132,6 +132,7 @@ function eraseGraph() {
 	le_links = [];
 	nodeMap = {};
 	expandedNodes = {};
+	provisionallyExpandedNodes = {};
 	animatorLinks = [];
 	$("#loading").css("display","block");
 }
@@ -185,7 +186,7 @@ function enterTransactionMode(tx) {
 					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
 						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
 						nodeMap[nodes[k].account.Account] = k;
-						degreeMap[nodes[k].account.Account] = 0;
+						degreeMap[nodes[k].account.Account] = 1;
 						k++;
 					} else {
 						console.log("We already added that node.");
@@ -200,7 +201,7 @@ function enterTransactionMode(tx) {
 		//console.log(nodes);
 		k++;
 		
-		addNodes(0);
+		addNodes(1);
 		for (var i=0; i<nodes.length; i++) {
 			//serverGetInfo(nodes[i].account.Account);
 			//serverGetLines(nodes[i].account.Account);
@@ -300,7 +301,7 @@ function renderTransaction(tx) {
 	}
 	transactionMap[tx.hash] = tx;
 	return ('<tr>'+
-		'<td style="width:80px;">'+absoluteDate(tx.date)+'</td>'+
+		'<td style="width:80px;">'+absoluteTime(tx.date)+'</td>'+
 		'<td style="width:1px;">'+clickableAccountSpan(from)+'</td>'+
 		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
 		( to||secondAmount ?
@@ -384,7 +385,7 @@ var Options = {
 	server: {
 		"websocket_ip" : "s2.ripple.com", //"s1.ripple.com", //
 		"websocket_port" : 51233,
-		"websocket_ssl" : false
+		"websocket_ssl" : false //true
 	}
 };
 var RECURSION_DEPTH = 1;
@@ -501,8 +502,10 @@ if (Options.server.websocket_ssl) {
 }
 str += Options.server.websocket_port;
 str += "/";
+
 server.socket = new WebSocket(str);
 var expandedNodes = {};
+var provisionallyExpandedNodes = {};
 
 server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
 	/* //TODO: Update the graph in real time as data comes in from the streams.
@@ -674,6 +677,7 @@ function currentCurrencyBalance(accountNode) {
 }
 
 function addConnections(origin, trustLines) {
+	var transactionMode = (mode=="transaction");
 	$("#loading").css("display","none");
 	//Receive an array of the format:
 	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
@@ -695,8 +699,12 @@ function addConnections(origin, trustLines) {
 		updateAllArrows();
 	}
 
-	if (degreeMap[origin] < RECURSION_DEPTH) {
-		expandedNodes[origin] = true;
+	if (degreeMap[origin] < RECURSION_DEPTH || ( degreeMap[origin] == RECURSION_DEPTH) && transactionMode ) {
+		if (!transactionMode) {
+			expandedNodes[origin] = true;
+		} else {
+			provisionallyExpandedNodes[origin] = true;
+		}
 		var newNodes = [];
 		var newLinks = [];
 		for (var i=0; i<trustLines.length; i++) {
@@ -708,7 +716,7 @@ function addConnections(origin, trustLines) {
 			// Fetch the node corresponding to the counterparty of this trust line,
 			// or if it's not on the list yet, create one and add it to the list.
 			if ("undefined" == typeof nodeMap[account]) {
-				if (parseFloat(trustLine.limit) != 0.0 ||  parseFloat(trustLine.limit_peer) != 0.0) {
+				if (!transactionMode && (parseFloat(trustLine.limit) != 0.0 ||  parseFloat(trustLine.limit_peer) != 0.0) ) {
 					nodeMap[account]=nodes.length;
 					degreeMap[account] = degreeMap[origin] + 1;
 					var angle = Math.random() * 6.283185307179586;
@@ -734,8 +742,8 @@ function addConnections(origin, trustLines) {
 				var node = nodes[nodeMap[account]];
 				linkWasToExisting = true;
 			}
-			// Now, create links to all of the counterparties that have not been expanded (ie., had their links displayed.)
-			if (expandedNodes[account]) {} else {
+			// Now, create links to all of the counterparties that have not been expanded (ie., had their links displayed.). If we're in transaction mode, only add links to existing nodes.
+			if ( (!transactionMode && !expandedNodes[account]) || (transactionMode && linkWasToExisting && !provisionallyExpandedNodes[account]) )  {
 				var link={};
 				function goon(link) {
 					if (parseFloat(trustLine.limit) != 0.0 && parseFloat(trustLine.limit_peer) != 0.0) {
@@ -759,7 +767,6 @@ function addConnections(origin, trustLines) {
 					link.value= parseFloat(trustLine.limit_peer);
 					goon(link);
 				}
-
 			}
 			
 			if (linkWasToExisting) {
@@ -1695,6 +1702,12 @@ function absoluteDate(secondsSince2000) {
 	d.setUTCSeconds(secondsSince2000+946684800);
 	return '<span class="light small mediumgray date" title="'+d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds())+'">'+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+'</span>';
 }
+function absoluteTime(secondsSince2000) {
+	var d = new Date(0);
+	d.setUTCSeconds(secondsSince2000+946684800);
+	return '<span class="light small mediumgray date" title="'+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+'">'+d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds())+'</span>';
+}
+
 
 
 
