@@ -47,8 +47,8 @@ total ripples: <span id="totalripples"></span><br/></div>
 </div>
 
 <div style="position:absolute; left:35px; top:80px; opacity:.8;">
-<input style="width:25px; height:25px; font-size:15pt;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
-<input style="width:25px; height:25px; font-size:15pt;" type="button" value="&ndash;" onclick="zoomOut();"/>
+<input style="width:25px; height:25px; font-size:12pt;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
+<input style="width:25px; height:25px; font-size:12pt;" type="button" value="&ndash;" onclick="zoomOut();"/>
 </div>
 
 <div id="loading" class="light large" style="color:#aaa; position:absolute; left:390px; top:100px; line-height:50px;">
@@ -257,7 +257,7 @@ function enterIndividualMode(data) {
 function renderTransaction(tx) {
 	var transactionType;
 	var from = tx.Account;
-	var to = "";
+	var to = null;
 	var amount = null;
 	var currency = null;
 	var secondAmount = null;
@@ -301,15 +301,22 @@ function renderTransaction(tx) {
 	transactionMap[tx.hash] = tx;
 	return ('<tr>'+
 		'<td style="width:80px;">'+absoluteDate(tx.date)+'</td>'+
-		'<td>'+clickableAccountSpan(from)+'</td>'+
+		'<td style="width:1px;">'+clickableAccountSpan(from)+'</td>'+
 		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
-
-		'<td style="min-width:40px;" colspan='+(to!="" ? '1' : '3')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span>'+
-			(secondAmount?' <i class="light small darkgray">for</i>&nbsp;<span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+'</td>'+
-		(to!="" ? '<td><i style="margin-left:5px; margin-right:5px;" class="light small darkgray">to</i></td><td>'+clickableAccountSpan(to)+'</td>' : '')+
+		( to||secondAmount ?
+			'<td style="width:1px;"><span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span></td>'+
+			'<td style="text-align:center; width:20px;"><i class="light small darkgray">'+
+			( to ?
+				'to</i></td>'+
+				'<td style="width:1px;">'+clickableAccountSpan(to)+'</td>'
+				:
+				'for</i></td>'+
+				'<td style="width:1px;"><span class="bold amount small">'+commas(secondAmount)+'</span>&nbsp;<span class="light small darkgray">'+secondCurrency+'</span></td>'
+			)
+			:
+			'<td colspan=3></td>'
+		)+
 		'</tr>');
-		
-		
 }
 
 
@@ -340,31 +347,13 @@ function renderTransaction(tx) {
 
 <!-- the table on the left -->
 <div class="bottomlist rightbordered" style="width:490px; float:left;">
+
 <div class="scroll-pane" id="transactionInformationContainer" style="z-index:1; width:935px; height:288px; position:absolute; background-color:#fff; display:none;">
-	<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;"></div>
-	<div id="transactionFeed" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;">
-		<table id="transactionFeedTable"></table>
-		
-		<!--
-		
-		
-<table id="transactionFeedTable" border=1><tbody>
-
-<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:10:40">12 Mar 2013</span></td><td>rLju3NgFJn9jZuiyibyJM7asTVeVoueWWF</td><td style="width:40px;"><div onclick="showTransactionWithHash('90D7361B94627CD8CB5CB1B1132A77B86BDD51FDACFCE21C749769B0DF574AB9')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td colspan="1"><span class="bold amount small">5</span>&nbsp;<span class="light small darkgray">CAD</span></td><td><i class="light small darkgray">to</i></td><td>rhKJE9kFPz6DuK4KyL2o8NkCCNPKnSQGRL</td></tr>
-
-<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:09:00">12 Mar 2013</span></td><td>rnLkaEfjiiyLKkKwUrjYxWNuysB2z7ja2Z</td><td style="width:40px;"><div class="trustout icon" title="Sent trust to...">&nbsp;</div></td><td colspan="1"><span class="bold amount small">1,500</span>&nbsp;<span class="light small darkgray">USD</span></td><td><i class="light small darkgray">to</i></td><td>rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B</td></tr>
-
-<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:05:40">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('C26AA6B4F7C3B9F55E17CD0D11F12032A1C7AD2757229FFD277C9447A8815E6E')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style=colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i style="margin-right:5px; margin-left:5px;" class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
-
-<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:04:50">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('6F82082118E721D29BAD9148DE0B2CFE2A0ADE10265F95477FAE736895EB2F1D')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style= colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
-
-<tr><td style="width:80px;"><span class="light small mediumgray date" title="16:04:20">12 Mar 2013</span></td><td>r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH</td><td style="width:40px;"><div onclick="showTransactionWithHash('58C465FB227719F6DC73AA635A62499D6B6DEE8B85229D1524AE2929D45EDF13')" class="send icon" title="Sent payment to...">&nbsp;</div></td><td style= colspan="1"><span class="bold amount small">0.01</span>&nbsp;<span class="light small darkgray">DYM</span></td><td><i class="light small darkgray">to</i></td><td>rB5TihdPbKgMrkFqrqUC3yLdE8hhv4BdeY</td></tr>
-
-</tbody></table>
-		
-		-->
-		
-		
+	<div style="width:935px; overflow-x:hidden;">
+		<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;"></div>
+		<div id="transactionFeed" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;">
+			<table id="transactionFeedTable"></table>	
+		</div>
 	</div>
 </div>
 <div class="scroll-pane" style="height:288px; margin-left:10px;">
@@ -375,7 +364,7 @@ function renderTransaction(tx) {
 <!-- the table on the right -->
 <div class="bottomlist" style="width:435px; margin-left:500px;">
 <div class="scroll-pane" style="height:288px;width:400px; ">
-<table class=" outertable" id="transactionTable"></table></div></div>
+<table class="outertable" id="transactionTable"></table></div></div>
 
 <div class="clearboth"></div>
 
@@ -1568,7 +1557,7 @@ var txAltText = {
 	"receive"    :"Received payment from...",
 	"trustout"   :"Sent trust to...",
 	"trustin"    :"Received trust from...",
-	"offerout"   :"Made offer",
+	"offerout"   :"Made offer to give...",
 	"offerin"    :"Accepted offer",
 	"canceloffer":"Canceled offer"};
 
