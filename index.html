@@ -33,7 +33,7 @@ ledger number: <span id="ledgernumber"></span><br/>
 total ripples: <span id="totalripples"></span><br/></div>
 <!-- top bar -->
 <input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
-<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val(),true);"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val().replace(/\s+/g, ''),true);"/>
 <div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
 	<select id="currency" onchange="changeCurrency(this.value);">
 		<option value="XRP">All Currencies</option>
@@ -134,7 +134,8 @@ function eraseGraph() {
 	expandedNodes = {};
 	provisionallyExpandedNodes = {};
 	animatorLinks = [];
-	$("#loading").css("display","block");
+	$("#loading").css("display","block").css("color","#aaa");;
+	$("#loading").html('<img src="throbber5.gif" style="vertical-align: middle;" width=50 height=50 /> Loading...');
 }
 
 
@@ -158,21 +159,22 @@ function exitTransactionMode() {
 function enterTransactionMode(tx) {
 	if (mode != "transaction") {
 		eraseGraph();
+		txx = tx;
 		$("#transactionInformation").html(txDescription(tx));
+		var currency;
 		if (tx.Amount.currency) {
-			var currency = tx.Amount.currency;
-			var option = $("select#currency").find("option[value="+currency+"]");
-			if (option.html()) {
-				$("select#currency").selectbox("change", currency, option.html());
-			} else {
-				$("select#currency").selectbox("change", "___", "SSGSGS");
-				$("#otherCurrency").attr("value",currency);
-				$('#otherCurrency').css('font-style','inherit').css('color','inherit');
-				changeCurrency("___");
-			}
-			/*console.log($("#currency").val());
-			$("#currency").val("USD");
-			console.log($("#currency").val());*/
+			currency = tx.Amount.currency;
+		} else {
+			currency = "XRP";
+		}
+		var option = $("select#currency").find("option[value="+currency+"]");
+		if (option.html()) {
+			$("select#currency").selectbox("change", currency, option.html());
+		} else {
+			$("select#currency").selectbox("change", "___", "SSGSGS");
+			$("#otherCurrency").attr("value",currency);
+			$('#otherCurrency').css('font-style','inherit').css('color','inherit');
+			changeCurrency("___");
 		}
 		senderAddress = tx.Account;
 		var k = 0;
@@ -210,7 +212,7 @@ function enterTransactionMode(tx) {
 			//expandNode(nodes[i].account.Account);
 		}
 		setTimeout(function(){animateTransaction(tx);}, 2000);
-		$("#leftHeading").text("Transaction information");
+		$("#leftHeading").html("Transaction information <input type='button' style='position:absolute; top:56px; left:200px;' onclick='animateTransaction(txx);' value='Animate'/>");
 		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
 		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
 		$("#transactionInformation").css("display","inherit");
@@ -383,9 +385,9 @@ function renderTransaction(tx) {
 
 var Options = {
 	server: {
-		"websocket_ip" : "s2.ripple.com", //"s1.ripple.com", //
+		"websocket_ip" : "s2.ripple.com",
 		"websocket_port" : 51233,
-		"websocket_ssl" : false //true
+		"websocket_ssl" : true
 	}
 };
 var RECURSION_DEPTH = 1;
