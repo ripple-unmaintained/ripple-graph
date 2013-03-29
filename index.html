@@ -13,6 +13,8 @@
 
 	<script type="text/javascript" src="jscrollpane/jquery.mousewheel.js"></script>
 	<script type="text/javascript" src="jscrollpane/jquery.jscrollpane.js"></script>
+	<script src="http://remysharp.com/downloads/jquery.inview.js"></script>
+	
 	<link type="text/css" href="jscrollpane/jquery.jscrollpane.css" rel="stylesheet" media="all" />
 
 	<title>Ripple Live Network</title>
@@ -52,278 +54,9 @@ total ripples: <span id="totalripples"></span><br/></div>
 </div>
 
 <div id="loading" class="light large" style="color:#aaa; position:absolute; left:390px; top:100px; line-height:50px;">
-	<img src="throbber4.gif" style="vertical-align: middle;" width=50 height=50 />
+	<img src="throbber4.gif" style="vertical-align: middle;"/>
 	Loading...
 </div>
-
-
-
-<script>
-/*
-I to F
--erase all information
--make the feed visible
-
-I to T
--erase all information
--erase all nodes
--show only the concerned nodes and links
--show the information below
--animate the transaction
-
-F to I
--make feed invisible
--show individual information
-
-F to T
--erase all information
--erase all nodes
--show only the concerned nodes and links
--show the information below
--animate the transaction
-
-T to I
--make transaction information invisible
--expand the focal node
--show tabs
-
-T to F
-(this cannot happen?)*/
-var senderAddress;
-
-var mode = "individual";
-
-
-function changeMode(newMode, data) {
-	if (mode != newMode) {
-		if (mode=="individual") {
-			exitIndividualMode();
-		} else if (mode=="transaction") {
-			exitTransactionMode();
-		} else if (mode=="feed") {
-			exitFeedMode();
-		}
-		if (newMode=="individual") {
-			enterIndividualMode(data);
-		} else if (newMode=="transaction") {
-			enterTransactionMode(data);
-		} else if (newMode=="feed") {
-			enterFeedMode();
-		}
-		mode = newMode;
-	}
-}
-
-
-function eraseGraph() {
-	zoomLevel = 1;
-	translationX = 0;
-	translationY = 0;
-	panAndZoom();
-	$("#zoomInButton").attr("disabled","disabled");
-
-	panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
-	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
-	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
-	svg.select("g#haloGroup").selectAll("circle.halo").data([]).exit().remove();
-	svg.select("g#arrowheadGroup").selectAll("path.arrowhead").data([]).exit().remove();
-	
-	nodes = [];
-	le_links = [];
-	nodeMap = {};
-	expandedNodes = {};
-	provisionallyExpandedNodes = {};
-	animatorLinks = [];
-	$("#loading").css("display","block").css("color","#aaa");;
-	$("#loading").html('<img src="throbber4.gif" style="vertical-align: middle;" width=50 height=50 /> Loading...');
-}
-
-
-function enterFeedMode() {
-	if (mode != "feed") {
-		$("#feedTab").removeClass("unselectedTab").addClass("selectedTab");//.css("visibility","visible");
-		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","visible");
-		$("#transactionFeed").css("display","inherit");
-		$("#leftHeading").text("Live transaction feed");
-		mode = "feed";
-	}
-}
-
-function exitTransactionMode() {
-	if (mode == "transaction") {
-		//EXPAND THE FOCAL NODE
-		$("#transactionInformation").css("display","none");
-	}
-}
-
-function enterTransactionMode(tx) {
-	if (mode != "transaction") {
-		eraseGraph();
-		txx = tx;
-		$("#transactionInformation").html(txDescription(tx));
-		var currency;
-		if (tx.Amount.currency) {
-			currency = tx.Amount.currency;
-		} else {
-			currency = "XRP";
-		}
-		var option = $("select#currency").find("option[value="+currency+"]");
-		if (option.html()) {
-			$("select#currency").selectbox("change", currency, option.html());
-		} else {
-			$("select#currency").selectbox("change", "___", "SSGSGS");
-			$("#otherCurrency").attr("value",currency);
-			$('#otherCurrency').css('font-style','inherit').css('color','inherit');
-			changeCurrency("___");
-		}
-		senderAddress = tx.Account;
-		var k = 0;
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
-		nodeMap[nodes[k].account.Account] = k;
-		degreeMap[nodes[k].account.Account] = 0;
-		k++;
-		if (tx.Paths) {
-			for (var i=0; i<tx.Paths.length; i++) {
-				for (var j=0; j<tx.Paths[i].length; j++) {
-					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
-						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
-						nodeMap[nodes[k].account.Account] = k;
-						degreeMap[nodes[k].account.Account] = 1;
-						k++;
-					} else {
-						console.log("We already added that node.");
-					}
-				}
-			}
-		}
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
-
-		nodeMap[nodes[k].account.Account] = k;
-		degreeMap[nodes[k].account.Account] = 0;
-		//console.log(nodes);
-		k++;
-		
-		addNodes(1);
-		for (var i=0; i<nodes.length; i++) {
-			//serverGetInfo(nodes[i].account.Account);
-			//serverGetLines(nodes[i].account.Account);
-			serverGetInfo(nodes[i].account.Account);
-			serverGetLines(nodes[i].account.Account);
-			//expandNode(nodes[i].account.Account);
-		}
-		setTimeout(function(){animateTransaction(tx);}, 2000);
-		$("#leftHeading").html("Transaction information <input type='button' style='position:absolute; top:56px; left:200px;' onclick='animateTransaction(txx);' value='Animate'/>");
-		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
-		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");//.css("visibility","hidden");
-		$("#transactionInformation").css("display","inherit");
-		mode = "transaction";
-	}
-}
-
-function exitFeedMode() {
-	if (mode == "feed") {
-		$("#transactionFeed").css("display","none");
-	}
-}
-
-function exitIndividualMode() {
-	if (mode == "individual") {
-		$("#rightHeading").text("");
-		$("#focalAddress").css("visibility","hidden");
-		$("#balanceTable").css("visibility","hidden");
-		$("#transactionTable").css("visibility","hidden");
-		$("#transactionInformationContainer").css("display","inherit");
-	}
-}
-
-function enterIndividualMode(data) {
-	if (mode != "individual") {
-		$("#leftHeading").text("Balances");
-		$("#rightHeading").text("History");
-		$("#focalAddress").css("visibility","visible");
-		$("#balanceTable").css("visibility","visible");
-		$("#transactionTable").css("visibility","visible");
-		$("#transactionInformationContainer").css("display","none"); //This is here because it is used by both feed and transaction modes.
-		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
-		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
-		if (data) {
-			expandNode(data);
-			senderAddress = false;
-		}
-		mode = "individual";
-	}
-}
-
-
-
-
-function renderTransaction(tx) {
-	var transactionType;
-	var from = tx.Account;
-	var to = null;
-	var amount = null;
-	var currency = null;
-	var secondAmount = null;
-	var secondCurrency = null;
-	
-	if (tx.TransactionType == "Payment") {
-		amount = tx.Amount;
-		transactionType = "send";
-		to = tx.Destination;
-	} else if (tx.TransactionType == "TrustSet") {
-		amount = tx.LimitAmount;
-		transactionType = "trustout";
-		to = tx.LimitAmount.issuer;
-	} else if (tx.TransactionType == "OfferCreate") {
-		transactionType = "offerout";
-		amount = tx.TakerGets;
-		secondAmount = tx.TakerPays;
-	} else if (tx.TransactionType == "OfferCancel") {
-		transactionType = "canceloffer";
-	} else {return;}
-	
-	if (amount) {
-		if (amount.currency) {
-			currency = amount.currency;
-			amount = amount.value;
-		} else {
-			currency = "XRP";
-			amount = amount/1000000;
-		}
-	}
-	
-	if (secondAmount) {
-		if (secondAmount.currency) {
-			secondCurrency = secondAmount.currency;
-			secondAmount = secondAmount.value;
-		} else {
-			secondCurrency = "XRP";
-			secondAmount = secondAmount/1000000;
-		}
-	}
-	transactionMap[tx.hash] = tx;
-	return ('<tr>'+
-		'<td style="width:80px;">'+absoluteTime(tx.date)+'</td>'+
-		'<td style="width:1px;">'+clickableAccountSpan(from)+'</td>'+
-		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
-		( to||secondAmount ?
-			'<td style="width:1px;"><span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span></td>'+
-			'<td style="text-align:center; width:20px;"><i class="light small darkgray">'+
-			( to ?
-				'to</i></td>'+
-				'<td style="width:1px;">'+clickableAccountSpan(to)+'</td>'
-				:
-				'for</i></td>'+
-				'<td style="width:1px;"><span class="bold amount small">'+commas(secondAmount)+'</span>&nbsp;<span class="light small darkgray">'+secondCurrency+'</span></td>'
-			)
-			:
-			'<td colspan=3></td>'
-		)+
-		'</tr>');
-}
-
-
-</script>
 
 
 <!-- begin information below -->
@@ -383,6 +116,8 @@ function renderTransaction(tx) {
 <!-- Javascript for the visualization, using the D3 library -->
 <script type="text/javascript">
 
+
+// WEBSOCKET OPTIONS
 var Options = {
 	server: {
 		"websocket_ip" : "s2.ripple.com",
@@ -390,9 +125,11 @@ var Options = {
 		"websocket_ssl" : true
 	}
 };
+
+
+// CONSTANTS
 var RECURSION_DEPTH = 1;
 var REFERENCE_NODE = 'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
-
 var HALO_MARGIN = 6;
 var COLOR_TABLE = {
 //currency  |  center  |   rim  |
@@ -455,7 +192,21 @@ var COLOR_TABLE = {
 			["#d0a4be","#b2879f"],
 			["#dcbfd0","#c9abbc"],
 			["#d9dae3","#dfd0d8"]]};
-			
+var HIGH_SATURATION_COLORS = {
+	"__N": "#f00", //RED	
+	"BTC": "#fa0", //ORANGE
+	"JPY": "#af0", //YELLOW
+	"USD": "#0f0", //LIME
+	"AUD": "#0fa", //GREEN
+	"XRP": "#0af", //BLUE
+	"___": "#00f", //INDIGO
+	"CAD": "#a0f", //VIOLET
+	"EUR": "#f0a"  //PINK
+};
+var HEX_TO_PERCENT = {"0":0,"a":0.67,"f":1};
+
+
+// WEBSOCKET SETUP	
 function getQueryVariable(variable) {
     var query = window.location.search.substring(1);
     var vars = query.split('&');
@@ -561,7 +312,6 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
 				updated.attr("r", nodeRadius(n));
 				svg.select("g#haloGroup").select("circle#halo_"+obj.result.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
-				updateAllArrows();
 			}
 			if (obj.result.account_data.Account == focalNode) {
 				//Update the XRP listing on the table below. (But don't rewrite the whole table)
@@ -570,9 +320,22 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		}
 	} else if (obj && obj.result && obj.result.transactions) {
 		var n = nodes[nodeMap[obj.result.account]];
-		n.transactions = obj.result.transactions;
+		console.log(obj.result);
+		if (n.transactions) {
+			if (obj.result.offset == n.transactions.length) {
+				n.transactions.push.apply(n.transactions, obj.result.transactions);
+				//n.transactions.extend(obj.result.transactions); //OR WHATEVER THIS IS.
+			} else {
+				console.log("THIS SHOULD NOT HAPPEN!");
+			}
+		} else {
+			n.transactions = obj.result.transactions;
+		}
+		if (obj.result.count) {
+			n.transactionCount = obj.result.count;
+		}
 		if (obj.result.account == focalNode) {
-			updateTransactions(focalNode);
+			updateTransactions(focalNode, true); //appending=true
 		}
 	} else if (obj && obj.result && obj.result.TransactionType) {
 		console.log("got info on transaction.");
@@ -604,6 +367,227 @@ server.socket.onclose = function() {
 } 
 
 
+
+
+// MODE CHANGING
+
+var mode = "individual";
+var senderAddress;
+
+function changeMode(newMode, data) {
+	if (mode != newMode) {
+		if (mode=="individual") {
+			exitIndividualMode();
+		} else if (mode=="transaction") {
+			exitTransactionMode();
+		} else if (mode=="feed") {
+			exitFeedMode();
+		}
+		if (newMode=="individual") {
+			enterIndividualMode(data);
+		} else if (newMode=="transaction") {
+			enterTransactionMode(data);
+		} else if (newMode=="feed") {
+			enterFeedMode();
+		}
+		mode = newMode;
+	}
+}
+
+function enterIndividualMode(data) {
+	if (mode != "individual") {
+		$("#leftHeading").text("Balances");
+		$("#rightHeading").text("History");
+		$("#focalAddress").css("visibility","visible");
+		$("#balanceTable").css("visibility","visible");
+		$("#transactionTable").css("visibility","visible");
+		$("#transactionInformationContainer").css("display","none"); //This is here because it is used by both feed and transaction modes.
+		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab").css("visibility","visible");
+		$("#individualTab").removeClass("unselectedTab").addClass("selectedTab").css("visibility","visible");
+		if (data) {
+			expandNode(data);
+			senderAddress = false;
+		}
+		mode = "individual";
+	}
+}
+function exitIndividualMode() {
+	if (mode == "individual") {
+		$("#rightHeading").text("");
+		$("#focalAddress").css("visibility","hidden");
+		$("#balanceTable").css("visibility","hidden");
+		$("#transactionTable").css("visibility","hidden");
+		$("#transactionInformationContainer").css("display","inherit");
+	}
+}
+
+function enterFeedMode() {
+	if (mode != "feed") {
+		$("#feedTab").removeClass("unselectedTab").addClass("selectedTab");
+		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");
+		$("#transactionFeed").css("display","inherit");
+		$("#leftHeading").text("Live transaction feed");
+		mode = "feed";
+	}
+}
+function exitFeedMode() {
+	if (mode == "feed") {
+		$("#transactionFeed").css("display","none");
+	}
+}
+
+function enterTransactionMode(tx) {
+	if (mode != "transaction") {
+		eraseGraph();
+		txx = tx;
+		$("#transactionInformation").html(txDescription(tx));
+		var currency;
+		if (tx.Amount.currency) {
+			currency = tx.Amount.currency;
+		} else {
+			currency = "XRP";
+		}
+		var option = $("select#currency").find("option[value="+currency+"]");
+		if (option.html()) {
+			$("select#currency").selectbox("change", currency, option.html());
+		} else {
+			$("select#currency").selectbox("change", "___", "SSGSGS");
+			$("#otherCurrency").attr("value",currency);
+			$('#otherCurrency').css('font-style','inherit').css('color','inherit');
+			changeCurrency("___");
+		}
+		senderAddress = tx.Account;
+		var k = 0;
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
+		nodeMap[nodes[k].account.Account] = k;
+		degreeMap[nodes[k].account.Account] = 0;
+		k++;
+		if (tx.Paths) {
+			for (var i=0; i<tx.Paths.length; i++) {
+				for (var j=0; j<tx.Paths[i].length; j++) {
+					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
+						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
+						nodeMap[nodes[k].account.Account] = k;
+						degreeMap[nodes[k].account.Account] = 1;
+						k++;
+					} else {
+						console.log("We already added that node.");
+					}
+				}
+			}
+		}
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
+
+		nodeMap[nodes[k].account.Account] = k;
+		degreeMap[nodes[k].account.Account] = 0;
+		k++;
+		
+		addNodes(1);
+		for (var i=0; i<nodes.length; i++) {
+			serverGetInfo(nodes[i].account.Account);
+			serverGetLines(nodes[i].account.Account);
+		}
+		setTimeout(function(){animateTransaction(tx);}, 2000);
+		$("#leftHeading").html("Transaction information <input type='button' style='position:absolute; top:56px; left:200px;' onclick='animateTransaction(txx);' value='Animate'/>");
+		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab");
+		$("#individualTab").addClass("unselectedTab").removeClass("selectedTab");
+		$("#transactionInformation").css("display","inherit");
+		mode = "transaction";
+	}
+}
+function exitTransactionMode() {
+	if (mode == "transaction") {
+		$("#transactionInformation").css("display","none");
+	}
+}
+
+function eraseGraph() {
+	zoomLevel = 1;
+	translationX = 0;
+	translationY = 0;
+	panAndZoom();
+	$("#zoomInButton").attr("disabled","disabled");
+
+	panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
+	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
+	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
+	svg.select("g#haloGroup").selectAll("circle.halo").data([]).exit().remove();
+	svg.select("g#arrowheadGroup").selectAll("path.arrowhead").data([]).exit().remove();
+	
+	nodes = [];
+	le_links = [];
+	nodeMap = {};
+	expandedNodes = {};
+	provisionallyExpandedNodes = {};
+	animatorLinks = [];
+	$("#loading").css("display","block").css("color","#aaa");;
+	$("#loading").html('<img src="throbber4.gif" style="vertical-align: middle;" /> Loading...');
+}
+
+
+// DATA-TO-HTML FUNCTIONS
+function renderTransaction(tx) {
+	var transactionType;
+	var from = tx.Account;
+	var to = null;
+	var amount = null;
+	var currency = null;
+	var secondAmount = null;
+	var secondCurrency = null;
+	if (tx.TransactionType == "Payment") {
+		amount = tx.Amount;
+		transactionType = "send";
+		to = tx.Destination;
+	} else if (tx.TransactionType == "TrustSet") {
+		amount = tx.LimitAmount;
+		transactionType = "trustout";
+		to = tx.LimitAmount.issuer;
+	} else if (tx.TransactionType == "OfferCreate") {
+		transactionType = "offerout";
+		amount = tx.TakerGets;
+		secondAmount = tx.TakerPays;
+	} else if (tx.TransactionType == "OfferCancel") {
+		transactionType = "canceloffer";
+	} else {return;}
+	if (amount) {
+		if (amount.currency) {
+			currency = amount.currency;
+			amount = amount.value;
+		} else {
+			currency = "XRP";
+			amount = amount/1000000;
+		}
+	}
+	if (secondAmount) {
+		if (secondAmount.currency) {
+			secondCurrency = secondAmount.currency;
+			secondAmount = secondAmount.value;
+		} else {
+			secondCurrency = "XRP";
+			secondAmount = secondAmount/1000000;
+		}
+	}
+	transactionMap[tx.hash] = tx;
+	return ('<tr>'+
+		'<td style="width:80px;">'+absoluteTime(tx.date)+'</td>'+
+		'<td style="width:1px;">'+clickableAccountSpan(from)+'</td>'+
+		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+		( to||secondAmount ?
+			'<td style="width:1px;"><span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span></td>'+
+			'<td style="text-align:center; width:20px;"><i class="light small darkgray">'+
+			( to ?
+				'to</i></td>'+
+				'<td style="width:1px;">'+clickableAccountSpan(to)+'</td>'
+				:
+				'for</i></td>'+
+				'<td style="width:1px;"><span class="bold amount small">'+commas(secondAmount)+'</span>&nbsp;<span class="light small darkgray">'+secondCurrency+'</span></td>'
+			)
+			:
+			'<td colspan=3></td>'
+		)+
+		'</tr>');
+}
+
 function clickableAccountSpan(address) {
 	var o = "<span class='light address' style='cursor:pointer;' "+
 		"onmouseover='lightenAddress(\""+address+"\");' "+
@@ -612,7 +596,6 @@ function clickableAccountSpan(address) {
 		address+"</span>";
 	return o;
 }
-
 
 function txDescription(result) {
 	var output = "<b>Amount:</b> <span class='amount'>"+
@@ -643,29 +626,16 @@ function txDescription(result) {
 	return output;
 }
 
-/*
-			$('#transactionTable').append(
-				'<tr>'+
-					'<td style="width:46px;"><div class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
-					'<td'+(counterparty==""?' colspan=2':'')+'>'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+
-					(counterparty!=""?'<span class="light address right"><span style="cursor:pointer; background-color:green;" '+
-							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
-							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
-							'onclick="expandNode(\''+counterparty+'\');">'+
-							counterparty+'</span></span></td>' : '')+
-					'<td class="marginalcell"/>'+
-				'</tr>');*/
-
-
+/* //deprecated arrow functions
 function calculateArrows(d) {
 	var rr = Math.ceil(5+nodeRadius(d.target));
 	return "url(\#arrow"+Math.min(59,rr)+")";
 }
 
 function updateAllArrows() {
-	//svg.select("g#linkGroup").selectAll("line").attr("marker-end", calculateArrows);
+	//deprecated. do nothing.
 }
-
+*/
 
 function currentCurrencyBalance(accountNode) {
 	var output;
@@ -698,7 +668,6 @@ function addConnections(origin, trustLines) {
 		svg.select("g#haloGroup")
 			.select("circle#halo_"+origin)
 			.attr("r", HALO_MARGIN+nodeRadius(nodes[nodeMap[origin]]) );
-		updateAllArrows();
 	}
 
 	if (degreeMap[origin] < RECURSION_DEPTH || ( degreeMap[origin] == RECURSION_DEPTH) && transactionMode ) {
@@ -804,7 +773,9 @@ function serverGetInfo(address) {
 	} else {
 		command = '{"command":"account_info", "ident":"'+address+'"}'; 
 		server.socket.send(command);
-		command = '{"command":"account_tx", "ledger_index":"-1", "account":"'+address+'", "ledger_min":"'+0+'", "ledger_max":"'+currentLedger.seqNum+'"}'; 
+		
+		countClause = nodes[nodeMap[address]].transactions ? '' : '"count":true, ';
+		command = '{"command":"account_tx", "descending":true, '+countClause+'"account":"'+address+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
 		server.socket.send(command);
 		
 	}
@@ -907,32 +878,6 @@ for (var cur in COLOR_TABLE) {
 	}
 }
 
-/*
-for (var cur in COLOR_TABLE) {	
-	var shades = COLOR_TABLE[cur];
-	for (var i=0; i<shades.length; i++) {
-		defineRadialGradient("gradient"+cur+i, shades[i][0], shades[i][0]);
-	}
-}/**/
-
-
-/*
-for (var i=0; i<60; i++) {
-defs.append("svg:marker")
-	.attr("id", "arrow"+(i))
-	.attr("viewBox", "0 0 10 10")
-	.attr("refX", i)
-	.attr("refY", 5)
-	.style("fill","#2d466e")
-	.style("z-index",10)
-	.attr("markerWidth", 16)
-	.attr("markerHeight", 12)
-	.attr("orient", "auto")
-	.append("svg:path")
-	.attr("d", "M 0 0 L 10 5 L 0 10 z");
-}
-*/
-
 function defineFilter(name, red, green, blue) {
 	var filter = defs.append("filter").attr("id",name).attr("x","-200%").attr("y","-200%").attr("width","800%").attr("height","800%");
 	var fct = filter.append("feComponentTransfer").attr("in","SourceAlpha");
@@ -944,21 +889,7 @@ function defineFilter(name, red, green, blue) {
 	filter.append("feComposite").attr("in","SourceGraphic").attr("in2","shadow").attr("operator","over");
 }
 
-var HEX_TO_PERCENT = {
-	"0":0,"a":0.67,"f":1
-}
 
-var HIGH_SATURATION_COLORS = {
-	"__N": "#f00", //RED	
-	"BTC": "#fa0", //ORANGE
-	"JPY": "#af0", //YELLOW
-	"USD": "#0f0", //LIME
-	"AUD": "#0fa", //GREEN
-	"XRP": "#0af", //BLUE
-	"___": "#00f", //INDIGO
-	"CAD": "#a0f", //VIOLET
-	"EUR": "#f0a"  //PINK
-}
 
 for (cur in HIGH_SATURATION_COLORS) {
 	var red = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(1)];
@@ -1256,29 +1187,6 @@ function animateTransaction(tx) {
 }
 
 
-/*
-function animateTransaction(tx) {
-	shine(tx.Account);
-	for (var i=0; i<tx.Paths.length; i++) {  ///  1; i++ ) {//
-		var path = tx.Paths[i];
-		var lastNode = tx.Account;
-		var nextNode;
-		var cur;
-		function animatePathLink(j) {
-			if (j==path.length) {
-				animateLink(lastNode, tx.Destination, cur, function(){shine(tx.Destination); console.log("Done with one path.");});
-			} else {
-				nextNode = path[j].account;
-				cur = path[j].currency;
-				animateLink(lastNode, nextNode, cur, function(){shine(nextNode); animatePathLink(j+1)});
-				lastNode = nextNode;
-			}
-		}
-		animatePathLink(0);
-	}
-}
-*/
-
 
 
 
@@ -1320,17 +1228,7 @@ function addNodes(degree) {
 		.style("stroke","#000")
 		.style("opacity","0.2")
 		.attr("stroke-width", linkOrNot);
-		//.attr("marker-end", calculateArrows);
-	
-/*
-	var alink = svg.select("g#linkGroup").selectAll("line.animator").data(force.links())
-		.enter().append("svg:line")
-		.attr("class", "animator")
-		.attr("id", function(d) {return d.source.account.Account + "_" + d.target.account.Account + "_" + d.currency} )
-		.style("stroke","#0f0")
-		.style("stroke-dasharray","0,99999")
-		.style("display","none")
-		.attr("stroke-width", linkOrNot);*/
+
 
 	function arrowheadPath(radius, theta) {
 		var rCosTheta = radius*Math.cos(theta);
@@ -1342,10 +1240,8 @@ function addNodes(degree) {
 	}
 	var arrowhead = svg.select("g#arrowheadGroup").selectAll("path.arrowhead").data(force.links())
 		.enter().append("svg:path")
-		.attr("class", "arrowhead")
-		//.attr("id", function(d) { return "halo_"+d.account.Account;})
-		//.attr("cx", function(d) { return (2*d.source.x+d.target.x)/3; })
-		//.attr("cy", function(d) { return (2*d.source.y+d.target.y)/3; })
+		.attr("class", "arrowhead");
+
 
 	arrowhead = setArrowheads(arrowhead);
 	
@@ -1371,20 +1267,14 @@ function addNodes(degree) {
 	}
 	
 	function setArrowheads(selection) {
-		//return selection;
 		return selection
 			.attr("transform", function(d) {
-				var position = d.source; //projection(parseFloat($("#"+d.source.account.Account).attr("r")), d.source, d.target);
+				var position = d.source;
 				return "translate("+position.x+","+position.y+"), rotate("+angle(d.source,d.target)+",0,0)";
 			})
 			.attr("d", function(d) {return arrowheadPath(parseFloat($("#"+d.source.account.Account).attr("r")), thetaValue(d.value)); } )
 			.style("fill", function(d){ return (isLinkVisible(d) ? "#000" : "none"); } );
-			/*.attr("cx", function(d) {
-				return projection(10+parseFloat($("#"+d.source.account.Account).attr("r")), d.source, d.target).x;
-			})
-			.attr("cy", function(d) {
-				return projection(10+parseFloat($("#"+d.source.account.Account).attr("r")), d.source, d.target).y;
-			});*/
+
 	}
 
 	
@@ -1404,7 +1294,7 @@ function addNodes(degree) {
 
 
 	
-	//var tickTime = new Date().getTime();
+
 	force.on("tick", function(e) {
 		var node = svg.selectAll("circle.node");
 		var halo = svg.selectAll("circle.halo");
@@ -1419,11 +1309,6 @@ function addNodes(degree) {
 		halo.attr("cx", function(d) { return d.x; })
 			.attr("cy", function(d) { return d.y; });
 		setArrowheads(arrowhead);
-		
-		/*var newTickTime = new Date().getTime();
-		console.log("TICK TIME:", newTickTime - tickTime);
-		tickTime = newTickTime;*/
-
 	});
 }
 
@@ -1450,7 +1335,6 @@ function refocus(focus, erase) {
 function commas(number) {
     var parts = number.toString().split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	//if (parts[1] && parts[1].length>5) {parts[1] = parts[1].slice(0,5)};
     return parts.join(".");
 }
 
@@ -1570,6 +1454,7 @@ function updateInformation(address) {
 var txAltText = {
 	"send"       :"Sent payment to...",
 	"receive"    :"Received payment from...",
+	"intermediate":"Intermediated payment of...",
 	"trustout"   :"Sent trust to...",
 	"trustin"    :"Received trust from...",
 	"offerout"   :"Made offer to give...",
@@ -1581,11 +1466,16 @@ function showTransactionWithHash(hash) {
 }
 var transactionMap = {};
 	
-function updateTransactions(address) {
-	$('#transactionTable').text("");
-	
+function updateTransactions(address, appending) {
+	if (!appending) {
+		$('#transactionTable').text("");
+	}
+	$("#transactionThrobber").remove();
 	if (nodes[nodeMap[address]].transactions) {
-		for (var i=0; i<nodes[nodeMap[address]].transactions.length; i++) {
+		console.log("LIST OF TRANSACTIONS!");
+		console.log(nodes[nodeMap[address]].transactions);
+		for (var i=$('#transactionTable tr').length; i<nodes[nodeMap[address]].transactions.length; i++) {
+			//alert("ADDING THING!");
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
 			var transactionType;
 			var counterparty = "";
@@ -1593,7 +1483,7 @@ function updateTransactions(address) {
 			var currency = null;
 			var secondAmount = null;
 			var secondCurrency = null;
-			
+
 			if (tx.TransactionType == "Payment") {
 				amount = tx.Amount;
 				if (tx.Account == address) {
@@ -1603,7 +1493,12 @@ function updateTransactions(address) {
 				else if (tx.Destination == address) {
 					transactionType = "receive";
 					counterparty = tx.Account;
-				} else {continue;}
+				} else {
+					transactionType = "intermediate";
+					//console.log("Could not interpret payment");
+					//console.log(tx);
+					//continue;
+				}
 			} else if (tx.TransactionType == "TrustSet") {
 				amount = tx.LimitAmount;
 				if (tx.Account == address) {
@@ -1613,15 +1508,18 @@ function updateTransactions(address) {
 				else if (tx.LimitAmount.issuer == address) {
 					transactionType = "trustin";
 					counterparty = tx.Account;
-				} else {continue;}
+				} else {
+					console.log("Could not interpret transaction TrustSet!");
+					continue;
+				}
 			} else if (tx.TransactionType == "OfferCreate") {
 				transactionType = "offerout";
 				amount = tx.TakerGets;
 				secondAmount = tx.TakerPays;
 			} else if (tx.TransactionType == "OfferCancel") {
-				continue; transactionType = "canceloffer";
-			} else {continue;}
-			
+				transactionType = "canceloffer";
+			} else {console.log("Could not interpret transaction: "+tx.transactionType);}
+
 			if (amount) {
 				if (amount.currency) {
 					currency = amount.currency;
@@ -1645,12 +1543,12 @@ function updateTransactions(address) {
 			
 			transactionMap[tx.hash] = tx;
 
-			
+
 			$('#transactionTable').append(
 				'<tr>'+
-					'<td style="width:46px;"><div '+(transactionType=='send'||transactionType=='receive'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
-					'<td style="width:374px;"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left">'+(amount?('<span class="bold amount small">'+commas(amount)+'</span> <span class="light small darkgray">'+currency+'</span>'+
-					(secondAmount?' <i class="light small darkgray">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray">'+secondCurrency+'</span>':'')):'')+
+					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left">'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span>'+
+					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span>':'')):'')+
 					agoDate(tx.date)+'</span>'+
 					(counterparty!=""?'<span style="display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis;" class="light address right"><span style="cursor:pointer;" '+
 							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
@@ -1659,8 +1557,34 @@ function updateTransactions(address) {
 							counterparty+'</span></span></td>' : '')+
 					'<td class="marginalcell"/>'+
 				'</tr>');
+
 		}
+		
+		
+		if (nodes[nodeMap[address]].transactions.length < nodes[nodeMap[address]].transactionCount) { //Are there more?
+			$('#transactionTable').append('<tr id="transactionThrobber"><td colspan=3 style="text-align:center; padding:10px"><img src="throbber4.gif" width=30 height=30 /></td></tr>');
+			$('#transactionThrobber').bind('inview', function (event, visible) {
+				if (visible == true) {
+					getNextTransactionPage();
+				}
+			});
+		}
+
 	}
+}
+
+var TRANSACTION_PAGE_LENGTH = 13;
+
+function getNextTransactionPage() {
+	//request transactions for the current account, with offset = nodes[nodeMap[address]].transactions.length
+	command = '{"command":"account_tx", "descending":true, "account":"'+focalNode+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "offset":'+nodes[nodeMap[focalNode]].transactions.length+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
+	server.socket.send(command);
+	
+	
+	//when the answer comes back, see if it's new information.
+	//if so, update WITH THE NEW INFO ONLY (i.e., don't clear the whole table, only do
+	//$("#transactionThrobber").remove();
+	//and add the new stuff.
 }
 
 function agoDate(secondsSince2000) {
@@ -1702,7 +1626,7 @@ function agoDate(secondsSince2000) {
 	
 	var d = new Date(0);
 	d.setUTCSeconds(secondsSince2000+946684800);
-	return '<span class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
+	return '<span style="margin-right:5px" class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
 }
 
 function absoluteDate(secondsSince2000) {
@@ -1768,7 +1692,6 @@ function changeCurrency(newCurrency) {
 		updated.attr("r", nodeRadius );
 		svg.select("g#haloGroup").selectAll("circle.halo").attr("r", function(d){return HALO_MARGIN+nodeRadius(d);} );
 		svg.select("g#linkGroup").selectAll("line.static").attr("stroke-width", linkOrNot);
-		updateAllArrows();
 		force.start();
 	}
 }

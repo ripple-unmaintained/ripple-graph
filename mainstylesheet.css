@@ -142,6 +142,7 @@ table.innertable tr { height:25px; }
 /* Icons */
 .send { background-image:url('icons/send.svg'); cursor:pointer;}
 .receive { background-image:url('icons/receive.svg'); cursor:pointer;}
+.intermediate { background-image:url('icons/intermediate.svg'); cursor:pointer;}
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
 .offerout { background-image:url('icons/offerout.svg'); }
@@ -166,8 +167,8 @@ div#transactionInformation ul {
   }
   
 #transactionTable span.date {
-	margin-left:12px;
-	  margin-right:12px;
+	/*margin-left:12px;
+	  margin-right:12px;*/
 }
 
 #transactionFeedTable td {
