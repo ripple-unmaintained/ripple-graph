@@ -207,6 +207,8 @@ var HEX_TO_PERCENT = {"0":0,"a":0.67,"f":1};
 
 
 // WEBSOCKET SETUP	
+
+/*
 function getQueryVariable(variable) {
     var query = window.location.search.substring(1);
     var vars = query.split('&');
@@ -218,17 +220,29 @@ function getQueryVariable(variable) {
     }
     return ""
 }
+*/
 
-var param = getQueryVariable("center").replace(/\W/g, '');
-var transaction_id = getQueryVariable("tx_id").replace(/\W/g, '');
-var viewingTransaction = (transaction_id != "");
+
+var param = window.location.hash.replace(/\W/g, '');
+
+//var transaction_id = getQueryVariable("tx_id").replace(/\W/g, '');
+//var viewingTransaction = (transaction_id != "");
 
 var alreadyFailed = false;
+var focalNode;
+var transaction_id;
+var viewingTransaction = false;
+
+var changingFocus = false;
 
 if (param == "") {
-	var focalNode = REFERENCE_NODE;
+	focalNode = REFERENCE_NODE;
+} else if (param.charAt(0) == "r" ) {
+	focalNode = param;
+} else if ("0123456789ABCDEF".indexOf(param.charAt(0)) != -1) {
+	transaction_id = param;
 } else {
-	var focalNode = param;
+	focalNode = REFERENCE_NODE;
 }
 
 var lastFocalNode = REFERENCE_NODE;
@@ -309,7 +323,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 			var n = nodes[nodeMap[obj.result.account_data.Account]];
 			n.account = obj.result.account_data;
 			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
-				updated = svg.select("g#nodeGroup").select("circle#"+obj.result.account_data.Account);
+				updated = svg.select("g#nodeGroup").select("circle#_"+obj.result.account_data.Account);
 				updated.attr("r", nodeRadius(n));
 				svg.select("g#haloGroup").select("circle#halo_"+obj.result.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
 			}
@@ -320,7 +334,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		}
 	} else if (obj && obj.result && obj.result.transactions) {
 		var n = nodes[nodeMap[obj.result.account]];
-		console.log(obj.result);
+		//console.log(obj.result);
 		if (n.transactions) {
 			if (obj.result.offset == n.transactions.length) {
 				n.transactions.push.apply(n.transactions, obj.result.transactions);
@@ -663,7 +677,7 @@ function addConnections(origin, trustLines) {
 	
 	if (currentCurrency != "XRP") { // Change the size of the circle, if we needed to wait until now to figure out its balance (i.e. we're looking at a currency other than XRP.)
 		svg.select("g#nodeGroup")
-			.select("circle#"+origin)
+			.select("circle#_"+origin)
 			.attr("r", nodeRadius(nodes[nodeMap[origin]]) );
 		svg.select("g#haloGroup")
 			.select("circle#halo_"+origin)
@@ -930,6 +944,8 @@ var force = d3.layout.force()
 
 
 function expandNode(address) {
+	changingFocus = true;
+	window.location.hash = address;
 	changeMode("individual");
 	lastFocalNode = focalNode;
 	focalNode = address;
@@ -983,14 +999,14 @@ function lightenAddress(address) {
 	if (typeof degreeMap[address] != "undefined") {
 		var colorDegree = Math.min(degreeMap[address], 3);
 		var cur = findCur(force.nodes()[nodeMap[address]]);
-		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")").style("stroke-width", 2).style("stroke", "#fc0" );
+		nodeGroup.select("#_"+address).style("fill", "url(#gradient"+cur+(colorDegree+1)+")").style("stroke-width", 2).style("stroke", "#fc0" );
 	}
 }
 function darkenAddress(address) {
 	if (typeof degreeMap[address] != "undefined") {
 		var colorDegree = Math.min(degreeMap[address], 3);
 		var cur = findCur(force.nodes()[nodeMap[address]]);
-		nodeGroup.select("#"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")").style("stroke-width", (colorDegree==0?5:0.5)).style("stroke", function(d){var cur = findCur(d); return borderColor(cur,colorDegree);} );
+		nodeGroup.select("#_"+address).style("fill", "url(#gradient"+cur+(colorDegree)+")").style("stroke-width", (colorDegree==0?5:0.5)).style("stroke", function(d){var cur = findCur(d); return borderColor(cur,colorDegree);} );
 	}
 }
 
@@ -1034,7 +1050,7 @@ function colorNodes(nodeSelection, colorDegree) {
 
 function reassignColors(address) {
 	var colorDegree = Math.min(degreeMap[address], 3);
-	colorNodes(svg.select("g#nodeGroup").select("circle#"+address), colorDegree)
+	colorNodes(svg.select("g#nodeGroup").select("circle#_"+address), colorDegree)
 	
 	function goon(counterparty) { // ...then reassign the colors of each counterparty too,
 		//only if the new degree is lower than the previous one (or the degree is as yet unknown)
@@ -1057,7 +1073,7 @@ function colorRogueNodes() {
 	for (var address in nodeMap) {
 		if (typeof degreeMap[address] == "undefined") {
 			degreeMap[address] = Infinity;
-			colorNodes(svg.select("g#nodeGroup").select("circle#"+address), 3);
+			colorNodes(svg.select("g#nodeGroup").select("circle#_"+address), 3);
 		}
 	}	
 }
@@ -1071,10 +1087,10 @@ function lineLength(lineElement) {
 }
 
 function shine(onOrOff, address, cur) {
-	$("#"+address).attr("filter",(onOrOff ? "url(#shine"+cur+")" : "none"));
+	$("#_"+address).attr("filter",(onOrOff ? "url(#shine"+cur+")" : "none"));
 	/*
 	if (onOrOff) {
-		$("#"+address).css("filter","drop-shadow(0 0 10px #ff0)");
+		$("#_"+address).css("filter","drop-shadow(0 0 10px #ff0)");
 	} else {
 		//do nothing
 	}*/
@@ -1206,7 +1222,7 @@ function addNodes(degree) {
 	var node = svg.select("g#nodeGroup").selectAll("circle.node").data(nodes)
 		.enter().append("svg:circle")
 		.attr("class", "node")
-		.attr("id", function(d) { return d.account.Account;})
+		.attr("id", function(d) { return "_"+d.account.Account;})
 		.attr("cx", function(d) { return d.x; })
 		.attr("cy", function(d) { return d.y; })
 		.attr("r", nodeRadius )
@@ -1272,7 +1288,7 @@ function addNodes(degree) {
 				var position = d.source;
 				return "translate("+position.x+","+position.y+"), rotate("+angle(d.source,d.target)+",0,0)";
 			})
-			.attr("d", function(d) {return arrowheadPath(parseFloat($("#"+d.source.account.Account).attr("r")), thetaValue(d.value)); } )
+			.attr("d", function(d) {return arrowheadPath(parseFloat($("#_"+d.source.account.Account).attr("r")), thetaValue(d.value)); } )
 			.style("fill", function(d){ return (isLinkVisible(d) ? "#000" : "none"); } );
 
 	}
@@ -1462,6 +1478,8 @@ var txAltText = {
 	"canceloffer":"Canceled offer"};
 
 function showTransactionWithHash(hash) {
+	changingFocus = true;
+	window.location.hash = hash;
 	changeMode("transaction",transactionMap[hash]);
 }
 var transactionMap = {};
@@ -1721,13 +1739,35 @@ function blurOtherCurrency(that) {
 	}
 }
 
-
+window.onhashchange = function(){
+	if (!changingFocus) {
+		if (window.location.hash == "" || window.location.hash == "#") {
+			refocus(REFERENCE_NODE, true);
+		} else if (window.location.hash.charAt(1) == "r") {
+			if (nodeMap[window.location.hash.substring(1)]) {
+				expandNode(window.location.hash.substring(1));
+			} else {
+				//the user edited the hash to something invalid, so don't do anything.
+			}
+		} else if ("0123456789ABCDEF".indexOf(window.location.hash.charAt(1)) != -1) {
+			showTransactionWithHash(window.location.hash.substring(1));
+		} else {
+			//do nothing
+		}
+	} else {
+		//console.log("REDUNDANT!");
+	}
+	changingFocus = false;
+};
 
 </script>
 
 
 <!-- Initialization functions -->
 <script>
+
+
+
 	$(function () {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
 	$(function () {$("#currency").selectbox();});
 	$("#focus").keyup(function(event){
