@@ -13,7 +13,7 @@
 
 	<script type="text/javascript" src="jscrollpane/jquery.mousewheel.js"></script>
 	<script type="text/javascript" src="jscrollpane/jquery.jscrollpane.js"></script>
-	<script src="http://remysharp.com/downloads/jquery.inview.js"></script>
+	<script src="jquery.inview.js"></script>
 	
 	<link type="text/css" href="jscrollpane/jquery.jscrollpane.css" rel="stylesheet" media="all" />
 
@@ -1472,10 +1472,7 @@ function updateTransactions(address, appending) {
 	}
 	$("#transactionThrobber").remove();
 	if (nodes[nodeMap[address]].transactions) {
-		console.log("LIST OF TRANSACTIONS!");
-		console.log(nodes[nodeMap[address]].transactions);
 		for (var i=$('#transactionTable tr').length; i<nodes[nodeMap[address]].transactions.length; i++) {
-			//alert("ADDING THING!");
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
 			var transactionType;
 			var counterparty = "";
@@ -1495,9 +1492,6 @@ function updateTransactions(address, appending) {
 					counterparty = tx.Account;
 				} else {
 					transactionType = "intermediate";
-					//console.log("Could not interpret payment");
-					//console.log(tx);
-					//continue;
 				}
 			} else if (tx.TransactionType == "TrustSet") {
 				amount = tx.LimitAmount;
