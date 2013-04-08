@@ -7,7 +7,8 @@
 
 	<script type="text/javascript" src="jquery.js"></script>
 	<script type="text/javascript" src="d3.v3.min.js"></script>
-
+	<script type="text/javascript" src="sha1.js"></script>
+	
 	<script type="text/javascript" src="selectbox/jquery.selectbox-0.2.min.js"></script>
 	<link href="selectbox/jquery.selectbox.css" type="text/css" rel="stylesheet" />
 
@@ -127,6 +128,7 @@ var Options = {
 };
 
 
+
 // CONSTANTS
 var RECURSION_DEPTH = 1;
 var REFERENCE_NODE = 'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
@@ -241,9 +243,14 @@ if (param == "") {
 	focalNode = param;
 } else if ("0123456789ABCDEF".indexOf(param.charAt(0)) != -1) {
 	transaction_id = param;
+} else if (param.charAt(0) == "u" && Sha1.hash(param) == "7d0b25cc0abdcc216e9f26b078c0cb5c9032ed8c") {
+	//Easter egg!
+	RECURSION_DEPTH = 999999999;
+	focalNode = REFERENCE_NODE;
 } else {
 	focalNode = REFERENCE_NODE;
 }
+
 
 var lastFocalNode = REFERENCE_NODE;
 var currentCurrency = "XRP";
@@ -1329,9 +1336,11 @@ function addNodes(degree) {
 }
 
 function refocus(focus, erase) {
+	changingFocus = true;
 	if (erase) {
 		eraseGraph();
 	}
+	window.location.hash = focus;
 	lastFocalNode = focalNode;
 	focalNode = focus;
 	nodeMap[focalNode] = nodes.length;
