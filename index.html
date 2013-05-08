@@ -282,19 +282,14 @@ var expandedNodes = {};
 var provisionallyExpandedNodes = {};
 
 server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
-	/* //TODO: Update the graph in real time as data comes in from the streams.
-	var command = '{"command":"ledger", "ledger": "closed" , "full" : 1 }';
-	server.socket.send(command);*/
 	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
 	server.socket.send(command);
-	
 	command = '{"command":"ledger", "ledger_selector":"current"}';
 	server.socket.send(command);
 	if (transaction_id && transaction_id!="") {
 		nodeMap = {};
 		degreeMap = {};
 		nodes = [];
-		//transaction_id = "5B91AA43F9D8671906644227CE9E8A60CEB82A9C2E51083D6E35070023CEAE07";
 		command= '{"command":"tx", "transaction":"'+transaction_id+'"}';
 		server.socket.send(command);
 	} else {
@@ -487,10 +482,14 @@ function enterTransactionMode(tx) {
 			for (var i=0; i<tx.Paths.length; i++) {
 				for (var j=0; j<tx.Paths[i].length; j++) {
 					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
-						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
-						nodeMap[nodes[k].account.Account] = k;
-						degreeMap[nodes[k].account.Account] = 1;
-						k++;
+						if (tx.Paths[i][j].account) {
+							nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
+							nodeMap[nodes[k].account.Account] = k;
+							degreeMap[nodes[k].account.Account] = 1;
+							k++;
+						} else {
+							console.log("Path entry does not correspond to an account.");
+						}
 					} else {
 						console.log("We already added that node.");
 					}
@@ -628,7 +627,9 @@ function txDescription(result) {
 				for (var i=0; i<result.Paths.length; i++) {
 					var listItem = "<li>"+clickableAccountSpan(result.Account) + " &rarr; ";
 					for (var j=0; j<result.Paths[i].length; j++) {
-						listItem += clickableAccountSpan(result.Paths[i][j].account) + " &rarr; ";
+						if (result.Paths[i][j].account) {
+							listItem += clickableAccountSpan(result.Paths[i][j].account) + " &rarr; ";
+						}
 					}
 					listItem += (clickableAccountSpan(result.Destination) + "</li>");
 					output += listItem;
@@ -1164,18 +1165,49 @@ function animateLink(onOrOff, speed, from, to, cur, callback) {
 
 function animateTransaction(tx) {
 	var cur;
-	if (tx.Amount.currency) {
-		cur = tx.Amount.currency;
-		if(!HIGH_SATURATION_COLORS.hasOwnProperty(cur)) {cur = "___";}
+
+	
+	var initialCur;
+	if (tx.SendMax && tx.SendMax.currency) {
+		initialCur = tx.SendMax.currency;
+		if(!HIGH_SATURATION_COLORS.hasOwnProperty(initialCur)) {initialCur = "___";}
 	} else {
-		cur = "XRP";
+		initialCur = "XRP";
+	}	
+	shine(true, tx.Account, initialCur);
+	
+	if (tx.Amount.currency) {
+		finalCur = tx.Amount.currency;
+		if(!HIGH_SATURATION_COLORS.hasOwnProperty(finalCur)) {finalCur = "___";}
+	} else {
+		finalCur = "XRP";
+	}	
+	
+	var finalCur;
+	if (tx.Amount.currency) {
+		finalCur = tx.Amount.currency;
+		if(!HIGH_SATURATION_COLORS.hasOwnProperty(finalCur)) {finalCur = "___";}
+	} else {
+		finalCur = "XRP";
 	}
-	shine(true, tx.Account, cur);
 	
 	var pathList;
 	if (tx.Paths) {
-		pathList = tx.Paths;
+		pathList = [];
 		for (var i=0; i<tx.Paths.length; i++) {
+			//console.log(i);
+			var thisOldPath = tx.Paths[i];
+			//console.log("OLD PATH:", thisOldPath);
+			var thisPath = [];
+			for (var j=0; j<thisOldPath.length; j++) {
+				if (thisOldPath[j].account) {
+					thisPath.push(thisOldPath[j]);
+				}
+			}
+			//console.log("NEW PATH:", thisPath);
+			pathList.push(thisPath);
+		}
+		for (var i=0; i<pathList.length; i++) {
 			animatePath(true, i);
 		}
 	} else {
@@ -1193,10 +1225,28 @@ function animateTransaction(tx) {
 			var speed = 0.01 * (path.length + 1);
 			function animatePathLink(j) {
 				if (j==path.length) {
-					animateLink(onOrOff, speed, lastNode, tx.Destination, cur, function(){shine(onOrOff, tx.Destination, cur); if(onOrOff) {shine(false, tx.Account); animatePath(false, i);} });
+					animateLink(onOrOff, speed, lastNode, tx.Destination, finalCur, function(){shine(onOrOff, tx.Destination, finalCur); if(onOrOff) {shine(false, tx.Account); animatePath(false, i);} });
 				} else {
 					nextNode = path[j].account;
-
+					/*
+					if (!nextNode) {
+						j++;
+						console.log(j, path);
+						nextNode = path[j].account;
+					}
+					if (!nextNode) {
+						j++;
+						console.log(j, path);
+						nextNode = path[j].account;
+					}
+					console.log("NEXT:", i, j, nextNode);*/
+					if (path[j].currency) {
+						cur = path[j].currency;
+						if(!HIGH_SATURATION_COLORS.hasOwnProperty(cur)) {cur = "___";}
+					} else {
+						cur = "XRP";
+					}
+					
 					animateLink(onOrOff, speed, lastNode, nextNode, cur, function(){shine(onOrOff, nextNode, cur); animatePathLink(j+1)});
 					lastNode = nextNode;
 				}
