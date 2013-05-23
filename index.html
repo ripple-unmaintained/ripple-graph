@@ -336,7 +336,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 		}
 	} else if (obj && obj.result && obj.result.transactions) {
 		var n = nodes[nodeMap[obj.result.account]];
-		//console.log(obj.result);
+		//console.log("GOT YOUR TRANSACTIONS!", obj.result);
 		if (n.transactions) {
 			if (obj.result.offset == n.transactions.length) {
 				n.transactions.push.apply(n.transactions, obj.result.transactions);
@@ -773,6 +773,7 @@ function addConnections(origin, trustLines) {
 	reassignColors(origin);
 	addNodes(degreeMap[origin]+1);
 	
+
 	//should we add a halo to origin?
 	svg.select("g#haloGroup").select("circle#halo_"+origin)
 		.style("stroke", (numberOfUnseenTrustLines(nodes[nodeMap[origin]])>0)?"#aaa":"none" );
@@ -952,22 +953,25 @@ var force = d3.layout.force()
 
 
 function expandNode(address) {
-	changingFocus = true;
-	window.location.hash = address;
-	changeMode("individual");
-	lastFocalNode = focalNode;
-	focalNode = address;
-	if ("undefined" == typeof nodeMap[address]) {
-		refocus(address, false);
-	} else {
-		degreeMap = {};
-		degreeMap[address] = 0;
-		reassignColors(address);
-		colorRogueNodes();
-		if (expandedNodes[address]) {} else {
-			serverGetLines(address);
+	var nutl = numberOfUnseenTrustLines(nodes[nodeMap[address]]);
+	if (nutl<360 || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) { 
+		changingFocus = true;
+		window.location.hash = address;
+		changeMode("individual");
+		lastFocalNode = focalNode;
+		focalNode = address;
+		if ("undefined" == typeof nodeMap[address]) {
+			refocus(address, false);
+		} else {
+			degreeMap = {};
+			degreeMap[address] = 0;
+			reassignColors(address);
+			colorRogueNodes();
+			if (expandedNodes[address]) {} else {
+				serverGetLines(address);
+			}
+			updateInformation(address);
 		}
-		updateInformation(address);
 	}
 }
 
