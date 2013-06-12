@@ -145,6 +145,7 @@ table.innertable tr { height:25px; }
 .intermediate { background-image:url('icons/intermediate.svg'); cursor:pointer;}
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
+.offerin { background-image:url('icons/offerin.svg'); }
 .offerout { background-image:url('icons/offerout.svg'); }
 .canceloffer { background-image:url('icons/canceloffer.svg'); }
 .icon {

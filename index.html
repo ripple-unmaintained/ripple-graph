@@ -121,8 +121,8 @@ total ripples: <span id="totalripples"></span><br/></div>
 // WEBSOCKET OPTIONS
 var Options = {
 	server: {
-		"websocket_ip" : "s1.ripple.com",
-		"websocket_port" : 443,
+		"websocket_ip" : "s2.ripple.com",
+		"websocket_port" : 51233,
 		"websocket_ssl" : true
 	}
 };
@@ -934,6 +934,9 @@ function nodeRadius(accountNode) {
 		bal = bal * 1000000000;
 	} 
 	return 14+Math.pow(Math.log(Math.abs(bal)+1),3) / 2000;
+	//TESTING FUN STUFF
+	/*var tl = accountNode.trustLines.length;
+	return 2+Math.pow(Math.log(1+tl),4)/25;*/
 }
 
 var force = d3.layout.force()
@@ -953,7 +956,12 @@ var force = d3.layout.force()
 
 
 function expandNode(address) {
-	var nutl = numberOfUnseenTrustLines(nodes[nodeMap[address]]);
+	if (typeof(nodes[nodeMap[address]]) !== "undefined") {
+		var nutl = numberOfUnseenTrustLines(nodes[nodeMap[address]]);
+	} else {
+		var nutl = 0;
+	}
+	
 	if (nutl<360 || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) { 
 		changingFocus = true;
 		window.location.hash = address;
@@ -1537,7 +1545,7 @@ var txAltText = {
 	"trustout"   :"Sent trust to...",
 	"trustin"    :"Received trust from...",
 	"offerout"   :"Made offer to give...",
-	"offerin"    :"Accepted offer",
+	"offerin"    :"Accepted offer and got...",
 	"canceloffer":"Canceled offer"};
 
 function showTransactionWithHash(hash) {
@@ -1555,12 +1563,15 @@ function updateTransactions(address, appending) {
 	if (nodes[nodeMap[address]].transactions) {
 		for (var i=$('#transactionTable tr').length; i<nodes[nodeMap[address]].transactions.length; i++) {
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
+			var meta =  nodes[nodeMap[address]].transactions[i].meta;
 			var transactionType;
 			var counterparty = "";
 			var amount = null;
 			var currency = null;
+			var aissuer = null;
 			var secondAmount = null;
 			var secondCurrency = null;
+			var secondAissuer = null;
 
 			if (tx.TransactionType == "Payment") {
 				amount = tx.Amount;
@@ -1588,9 +1599,72 @@ function updateTransactions(address, appending) {
 					continue;
 				}
 			} else if (tx.TransactionType == "OfferCreate") {
-				transactionType = "offerout";
-				amount = tx.TakerGets;
-				secondAmount = tx.TakerPays;
+				if (tx.Account == address) {
+					transactionType = "offerout";
+					amount = tx.TakerGets;
+					secondAmount = tx.TakerPays;
+				} else {
+					//console.log("An offer was made, but not by you. We must now scour the meta-data to find out how exactly this transaction affected you.");
+					var affectedBalances = {};
+					for (var j=0; j<meta.AffectedNodes.length; j++) {
+						var mn = meta.AffectedNodes[j].ModifiedNode || meta.AffectedNodes[j].DeletedNode || meta.AffectedNodes[j].CreatedNode;
+						var LatestFields = mn.FinalFields || mn.NewFields;
+						if (mn) {
+							if (LatestFields.Account == address || (LatestFields.HighLimit && LatestFields.HighLimit.issuer == address) ) {
+								//console.log("LATEST FIELDS:", LatestFields);
+								var let = mn.LedgerEntryType;
+																
+								if (let == "AccountRoot") {
+									//console.log("Affected AccountRoot:", mn);
+									var diff = LatestFields.Balance - (mn.PreviousFields ? mn.PreviousFields.Balance : 0);
+									//console.log("Got/gave XRP:", diff);
+									if (affectedBalances["XRP"]) {
+										affectedBalances["XRP"]+=diff;
+									} else {
+										affectedBalances["XRP"]=diff;
+									}
+								} else if (let == "RippleState") {
+									//console.log("Affected RippleState:", mn);
+									//Not sure why this is reversed, but that's the way it is:
+									var diff = 0-(LatestFields.Balance.value - (mn.PreviousFields ? mn.PreviousFields.Balance.value : 0));
+									var cur = LatestFields.Balance.currency;
+									var issuer = LatestFields.LowLimit.issuer;
+									var cip = cur;//+":"+issuer; //Do we need this?
+									//console.log("Got/gave", cip, ":", diff);
+									if (affectedBalances[cip]) {
+										affectedBalances[cip]+=diff;
+									} else {
+										affectedBalances[cip]=diff;
+									}
+								} else {
+									//console.log("Affected my", let,  mn);
+								}
+
+							} else {
+								//console.log("Did not affect me?", mn);
+							}
+						}
+					}
+					var affectedKeys = Object.keys(affectedBalances)
+					if (affectedKeys.length == 2) {
+						var fip = affectedBalances[affectedKeys[0]] > 0;
+						var posKey = fip > 0 ? 0 : 1;
+						var negKey = fip > 0 ? 1 : 0;
+						var positive = affectedBalances[affectedKeys[posKey]];
+						var negative = affectedBalances[affectedKeys[negKey]];
+						if (positive * negative > 0) {
+							console.log("Could not interpret as offerin.");
+							continue;	
+						} else {
+							transactionType = "offerin";
+							amount = affectedKeys[posKey]=="XRP" ? positive : {value: positive, currency: affectedKeys[posKey], issuer:issuer};
+							secondAmount = affectedKeys[negKey]=="XRP" ? -negative : {value: -negative, currency: affectedKeys[negKey], issuer:issuer};
+						}
+					} else {
+						console.log("Could not interpret as offerin.", affectedBalances);
+						continue;
+					}
+				}
 			} else if (tx.TransactionType == "OfferCancel") {
 				transactionType = "canceloffer";
 			} else {console.log("Could not interpret transaction: "+tx.transactionType);}
@@ -1598,6 +1672,7 @@ function updateTransactions(address, appending) {
 			if (amount) {
 				if (amount.currency) {
 					currency = amount.currency;
+					aissuer = amount.issuer;
 					amount = amount.value;
 				} else {
 					currency = "XRP";
@@ -1608,6 +1683,7 @@ function updateTransactions(address, appending) {
 			if (secondAmount) {
 				if (secondAmount.currency) {
 					secondCurrency = secondAmount.currency;
+					secondAissuer = secondAmount.issuer;
 					secondAmount = secondAmount.value;
 				} else {
 					secondCurrency = "XRP";
@@ -1622,13 +1698,13 @@ function updateTransactions(address, appending) {
 			$('#transactionTable').append(
 				'<tr>'+
 					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
-					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left">'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span>'+
-					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span>':'')):'')+
+					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
+					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span '+(secondAissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+secondAissuer+'"':'')+'><span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span></span>':'')):'')+
 					agoDate(tx.date)+'</span>'+
 					(counterparty!=""?'<span style="display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis;" class="light address right"><span style="cursor:pointer;" '+
 							'onmouseover="lightenAddress(\''+counterparty+'\');"'+
 							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
-							'onclick="expandNode(\''+counterparty+'\');">'+
+							'onclick="expandNode(\''+counterparty+'\');">'+//"HASH:"+tx.hash+
 							counterparty+'</span></span></td>' : '')+
 					'<td class="marginalcell"/>'+
 				'</tr>');
@@ -1736,7 +1812,7 @@ function getBalances(address) {
 function linkOrNot(d) {
 	if(currentCurrency=="XRP" || currentCurrency==d.currency) {
 		var o = 5*Math.pow(Math.log(1+d.value),0.3333);;
-		return o;
+		return o;//2;//FUN STUFF o;
 	} 
 	else{return 0;}
 }
