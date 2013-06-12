@@ -617,6 +617,7 @@ function clickableAccountSpan(address) {
 }
 
 function txDescription(result) {
+	console.log("TX INFO:",result);
 	var output = "<b>Amount:</b> <span class='amount'>"+
 		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+
 		"</span><br/><b>Path:</b><ul>"+
@@ -638,12 +639,15 @@ function txDescription(result) {
 			}
 			return output;
 		})()+
-		"</ul><b>Signing key:</b> <tt>"+result.SigningPubKey+
+		"</ul>"+"<b>Result:</b> "+result.meta.TransactionResult+"<br/>"+
+		"<b>Date:</b> "+result.date+"<br/>"+
+		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
+		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
 		"</tt><br/><b>Signature:</b><br/><span class='stringPiece'>"+
 			result.TxnSignature.slice(0,70)+"</span><br/><span class='stringPiece'>"+
 			result.TxnSignature.slice(70)+
-		"</span><br/><b>Hash:</b> <tt>"+result.hash+
-		"</tt><br/><b>Ledger:</b> "+result.inLedger;
+		"</span>";
+		
 	return output;
 }
 
@@ -675,7 +679,7 @@ function addConnections(origin, trustLines) {
 	//Receive an array of the format:
 	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
 	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
-	nodes[nodeMap[origin]].trustLines = trustLines;
+	nodes[nodeMap[origin]].trustLines = trustLines; //XXXXX
 	nodes[nodeMap[origin]].balances = getBalances(origin);
 
 	if (origin == focalNode) {
@@ -961,25 +965,26 @@ function expandNode(address) {
 		var nutl = 0;
 	}
 	
-	if (nutl<360 || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) { 
-		changingFocus = true;
-		window.location.hash = address;
-		changeMode("individual");
-		lastFocalNode = focalNode;
-		focalNode = address;
-		if ("undefined" == typeof nodeMap[address]) {
-			refocus(address, false);
-		} else {
-			degreeMap = {};
-			degreeMap[address] = 0;
-			reassignColors(address);
-			colorRogueNodes();
-			if (expandedNodes[address]) {} else {
+	changingFocus = true;
+	window.location.hash = address;
+	changeMode("individual");
+	lastFocalNode = focalNode;
+	focalNode = address;
+	if ("undefined" == typeof nodeMap[address]) {
+		refocus(address, false);
+	} else {
+		degreeMap = {};
+		degreeMap[address] = 0;
+		reassignColors(address);
+		colorRogueNodes();
+		if (expandedNodes[address]) {} else {
+			if(nutl<360 || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) {
 				serverGetLines(address);
-			}
-			updateInformation(address);
+			} 
 		}
+		updateInformation(address);
 	}
+	
 }
 
 
@@ -1396,7 +1401,7 @@ function addNodes(degree) {
 	});
 }
 
-function refocus(focus, erase) {
+function refocus(focus, erase, noExpand) {
 	changingFocus = true;
 	if (erase) {
 		eraseGraph();
@@ -1408,7 +1413,9 @@ function refocus(focus, erase) {
 	nodes.push({x:0.5*w, y:hh/2, account:{Account:focalNode, Balance:0}, trustLines:[], balances:{} });
 	degreeMap = {};
 	degreeMap[focalNode] = 0;
-	serverGetLines(focalNode);
+	if (!noExpand) {
+		serverGetLines(focalNode);
+	}
 	addNodes(0);
 	reassignColors(focalNode);
 	colorRogueNodes();
@@ -1541,6 +1548,9 @@ var txAltText = {
 	"send"       :"Sent payment to...",
 	"receive"    :"Received payment from...",
 	"intermediate":"Intermediated payment of...",
+	"sendfailed" :"Failed to send payment to...",
+	"receivefailed":"Failed to receive payment from...",
+	"intermediatefailed":"Failed to intermediate payment of...",
 	"trustout"   :"Sent trust to...",
 	"trustin"    :"Received trust from...",
 	"offerout"   :"Made offer to give...",
@@ -1562,7 +1572,7 @@ function updateTransactions(address, appending) {
 	if (nodes[nodeMap[address]].transactions) {
 		for (var i=$('#transactionTable tr').length; i<nodes[nodeMap[address]].transactions.length; i++) {
 			var tx = nodes[nodeMap[address]].transactions[i].tx;
-			var meta =  nodes[nodeMap[address]].transactions[i].meta;
+			var meta = nodes[nodeMap[address]].transactions[i].meta;
 			var transactionType;
 			var counterparty = "";
 			var amount = null;
@@ -1690,13 +1700,12 @@ function updateTransactions(address, appending) {
 				}
 			}
 			
-			
 			transactionMap[tx.hash] = tx;
-
+			var success = meta.TransactionResult == "tesSUCCESS" ? "" : "failed";
 
 			$('#transactionTable').append(
 				'<tr>'+
-					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
 					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
 					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span '+(secondAissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+secondAissuer+'"':'')+'><span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span></span>':'')):'')+
 					agoDate(tx.date)+'</span>'+

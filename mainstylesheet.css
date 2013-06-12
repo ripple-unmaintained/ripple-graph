@@ -143,6 +143,9 @@ table.innertable tr { height:25px; }
 .send { background-image:url('icons/send.svg'); cursor:pointer;}
 .receive { background-image:url('icons/receive.svg'); cursor:pointer;}
 .intermediate { background-image:url('icons/intermediate.svg'); cursor:pointer;}
+.sendfailed { background-image:url('icons/sendfailed.svg'); cursor:pointer;}
+.receivefailed { background-image:url('icons/receivefailed.svg'); cursor:pointer;}
+.intermediatefailed { background-image:url('icons/intermediatefailed.svg'); cursor:pointer;}
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
 .offerin { background-image:url('icons/offerin.svg'); }
