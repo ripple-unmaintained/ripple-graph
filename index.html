@@ -322,7 +322,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 			refocus(lastFocalNode,true);
 		} else {
 			var n = nodes[nodeMap[obj.result.account_data.Account]];
-			n.account = obj.result.account_data;
+			n.account = obj.result.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
 			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
 				updated = svg.select("g#nodeGroup").select("circle#_"+obj.result.account_data.Account);
 				updated.attr("r", nodeRadius(n));
@@ -336,7 +336,7 @@ server.socket.onmessage = function(msg) { //Process a message received from Ripp
 	} else if (obj && obj.result && obj.result.transactions) {
 		var n = nodes[nodeMap[obj.result.account]];
 		//console.log("GOT YOUR TRANSACTIONS!", obj.result);
-		if (n.transactions) {
+		if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
 			if (obj.result.offset == n.transactions.length) {
 				n.transactions.push.apply(n.transactions, obj.result.transactions);
 				//n.transactions.extend(obj.result.transactions); //OR WHATEVER THIS IS.
@@ -639,7 +639,7 @@ function txDescription(result) {
 			}
 			return output;
 		})()+
-		"</ul>"+"<b>Result:</b> "+result.meta.TransactionResult+"<br/>"+
+		"</ul>"+"<b>Result:</b> "+(result.meta?result.meta.TransactionResult:"N/A")+"<br/>"+
 		"<b>Date:</b> "+result.date+"<br/>"+
 		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
@@ -679,7 +679,7 @@ function addConnections(origin, trustLines) {
 	//Receive an array of the format:
 	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
 	//{"account":"rU5KBPzSyPycRVW1HdgCKjYpU6W9PKQdE8","balance":"0","currency":"BTC","limit":"0","limit_peer":"10","quality_in":0,"quality_out":0}]
-	nodes[nodeMap[origin]].trustLines = trustLines; //XXXXX
+	nodes[nodeMap[origin]].trustLines = trustLines; //XXXX Uncaught TypeError: Cannot set property 'trustLines' of undefined 
 	nodes[nodeMap[origin]].balances = getBalances(origin);
 
 	if (origin == focalNode) {
@@ -800,7 +800,7 @@ function serverGetInfo(address) {
 		command = '{"command":"account_info", "ident":"'+address+'"}'; 
 		server.socket.send(command);
 		
-		countClause = nodes[nodeMap[address]].transactions ? '' : '"count":true, ';
+		countClause = nodes[nodeMap[address]] && nodes[nodeMap[address]].transactions ? '' : '"count":true, ';
 		command = '{"command":"account_tx", "descending":true, '+countClause+'"account":"'+address+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
 		server.socket.send(command);
 		
