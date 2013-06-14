@@ -146,10 +146,17 @@ table.innertable tr { height:25px; }
 .sendfailed { background-image:url('icons/sendfailed.svg'); cursor:pointer;}
 .receivefailed { background-image:url('icons/receivefailed.svg'); cursor:pointer;}
 .intermediatefailed { background-image:url('icons/intermediatefailed.svg'); cursor:pointer;}
+
 .trustin { background-image:url('icons/trustin.svg'); }
 .trustout { background-image:url('icons/trustout.svg'); }
+.trustinfailed  { background-image:url('icons/trustinfailed.svg'); }
+.trustoutfailed  { background-image:url('icons/trustoutfailed.svg'); }
+
 .offerin { background-image:url('icons/offerin.svg'); }
 .offerout { background-image:url('icons/offerout.svg'); }
+.offerinfailed { background-image:url('icons/offerinfailed.svg'); }
+.offeroutfailed { background-image:url('icons/offeroutfailed.svg'); }
+
 .canceloffer { background-image:url('icons/canceloffer.svg'); }
 .icon {
 	background-repeat:no-repeat;
@@ -157,10 +164,10 @@ table.innertable tr { height:25px; }
 	
 	
 	
-div#transactionInformation span.stringPiece {
+div#transactionInformation div.bigString {
 font-family: monospace;
- margin-left:20px;
-
+margin-left:20px;
+word-break: break-all;
  }
  
 div#transactionInformation ul {

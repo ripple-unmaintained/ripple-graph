@@ -472,40 +472,9 @@ function enterTransactionMode(tx) {
 			changeCurrency("___");
 		}
 		senderAddress = tx.Account;
-		var k = 0;
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
-		nodeMap[nodes[k].account.Account] = k;
-		degreeMap[nodes[k].account.Account] = 0;
-		k++;
-		if (tx.Paths) {
-			for (var i=0; i<tx.Paths.length; i++) {
-				for (var j=0; j<tx.Paths[i].length; j++) {
-					if ("undefined" == typeof nodeMap[tx.Paths[i][j].account]) {
-						if (tx.Paths[i][j].account) {
-							nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Paths[i][j].account, Balance:0}, trustLines:[], balances:{} });
-							nodeMap[nodes[k].account.Account] = k;
-							degreeMap[nodes[k].account.Account] = 1;
-							k++;
-						} else {
-							console.log("Path entry does not correspond to an account.");
-						}
-					} else {
-						console.log("We already added that node.");
-					}
-				}
-			}
-		}
-		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
-
-		nodeMap[nodes[k].account.Account] = k;
-		degreeMap[nodes[k].account.Account] = 0;
-		k++;
 		
-		addNodes(1);
-		for (var i=0; i<nodes.length; i++) {
-			serverGetInfo(nodes[i].account.Account);
-			serverGetLines(nodes[i].account.Account);
-		}
+		walkPaths(tx, true);
+
 		setTimeout(function(){animateTransaction(tx);}, 2000);
 		$("#leftHeading").html("Transaction information <input type='button' style='position:absolute; top:56px; left:200px;' onclick='animateTransaction(txx);' value='Animate'/>");
 		$("#feedTab").addClass("unselectedTab").removeClass("selectedTab");
@@ -517,6 +486,68 @@ function enterTransactionMode(tx) {
 function exitTransactionMode() {
 	if (mode == "transaction") {
 		$("#transactionInformation").css("display","none");
+	}
+}
+
+
+function walkPaths(tx, clearing) {
+	var anyNewNodes = false;
+	var numberOfExistingNodes = nodes.length-1;
+	if ("undefined" == typeof nodeMap[tx.Account]) {
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
+		nodeMap[tx.Account] = nodes.length-1;
+		//console.log("NNNNNN", nodes, nodeMap);
+		degreeMap[tx.Account] = clearing ? 0 : 1;
+		//console.log("Added node");
+		anyNewNodes = true;
+	} else {
+		//console.log("We already added the source node.", tx.Account);
+	}
+	if (tx.Paths) {
+		for (var i=0; i<tx.Paths.length; i++) {
+			for (var j=0; j<tx.Paths[i].length; j++) {
+				var address = tx.Paths[i][j].account;
+				if ("undefined" == typeof nodeMap[address]) {
+					if (address) {
+						nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:address, Balance:0}, trustLines:[], balances:{} });
+						nodeMap[address] = nodes.length-1;
+						degreeMap[address] = 1;
+						console.log("Added node");
+						anyNewNodes = true;
+					} else {
+						//console.log("Path entry does not correspond to an account.");
+					}
+				} else {
+					//console.log("We already added that node.", address);
+				}
+			}
+		}
+	}
+	if ("undefined" == typeof nodeMap[tx.Destination]) {
+		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
+		nodeMap[tx.Destination] = nodes.length-1;
+		degreeMap[tx.Destination] = clearing ? 0 : 1;
+		//console.log("Added node");
+		anyNewNodes = true;
+	} else {
+		//console.log("We already added the destination node.", tx.Destination);
+	}
+	if (anyNewNodes) {
+		addNodes(1);
+	}
+	
+	if (clearing) {	//Do this if we just cleared the graph and are displaying the transaction.
+		for (var i=0; i<nodes.length; i++) {
+			serverGetInfo(nodes[i].account.Account);
+			serverGetLines(nodes[i].account.Account);
+		}
+	} else if (anyNewNodes) { //Do this if we're displaying in place:
+		//Note: This will NOT display new connections between already existing nodes, even if the transaction uses them.
+		displayingTransactionInPlace = true;
+		for (var i=numberOfExistingNodes; i<nodes.length; i++) {
+			serverGetInfo(nodes[i].account.Account);
+			serverGetLines(nodes[i].account.Account);
+		}
 	}
 }
 
@@ -546,6 +577,7 @@ function eraseGraph() {
 
 // DATA-TO-HTML FUNCTIONS
 function renderTransaction(tx) {
+	//console.log('TX:', tx);
 	var transactionType;
 	var from = tx.Account;
 	var to = null;
@@ -590,7 +622,7 @@ function renderTransaction(tx) {
 	return ('<tr>'+
 		'<td style="width:80px;">'+absoluteTime(tx.date)+'</td>'+
 		'<td style="width:1px;">'+clickableAccountSpan(from)+'</td>'+
-		'<td style="width:40px;"><div '+(transactionType=='send'?'onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
+		'<td style="width:40px;"><div '+(transactionType=='send'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\')"':'')+' class="'+transactionType+' icon" title="'+txAltText[transactionType]+'">&nbsp;</div></td>'+
 		( to||secondAmount ?
 			'<td style="width:1px;"><span class="bold amount small">'+commas(amount)+'</span>&nbsp;<span class="light small darkgray">'+currency+'</span></td>'+
 			'<td style="text-align:center; width:20px;"><i class="light small darkgray">'+
@@ -619,8 +651,9 @@ function clickableAccountSpan(address) {
 function txDescription(result) {
 	console.log("TX INFO:",result);
 	var output = "<b>Amount:</b> <span class='amount'>"+
-		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+
-		"</span><br/><b>Path:</b><ul>"+
+		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+"</span><br/>"+
+		(result.Amount.issuer ? "<b>Issuer:</b> "+clickableAccountSpan(result.Amount.issuer)+"<br/>" : "")+
+		"<b>Path:</b><ul>"+
 		(function(){
 			var output = "";
 			if (result.Paths) {
@@ -639,14 +672,11 @@ function txDescription(result) {
 			}
 			return output;
 		})()+
-		"</ul>"+"<b>Result:</b> "+(result.meta?result.meta.TransactionResult:"N/A")+"<br/>"+
-		"<b>Date:</b> "+result.date+"<br/>"+
+		"</ul>"+"<b>Result:</b> "+(result.meta?(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span>":"N/A")+"<br/>"+
+		(result.date ? "<b>Date:</b> "+absoluteDateOnly(result.date)+" "+absoluteTimeOnly(result.date)+"<br/>" : "")+
 		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
-		"</tt><br/><b>Signature:</b><br/><span class='stringPiece'>"+
-			result.TxnSignature.slice(0,70)+"</span><br/><span class='stringPiece'>"+
-			result.TxnSignature.slice(70)+
-		"</span>";
+		"</tt><br/><b>Signature:</b><br/><div class='bigString' style='width:"+result.TxnSignature.length*4+"px;'>"+result.TxnSignature+"</div>";
 		
 	return output;
 }
@@ -673,8 +703,9 @@ function currentCurrencyBalance(accountNode) {
 	return output;
 }
 
+var displayingTransactionInPlace = false;
 function addConnections(origin, trustLines) {
-	var transactionMode = (mode=="transaction");
+	var transactionMode = (mode=="transaction") || displayingTransactionInPlace;
 	$("#loading").css("display","none");
 	//Receive an array of the format:
 	//[{"account":"rnziParaNb8nsU4aruQdwYE3j5jUcqjzFm","balance":"0","currency":"BTC","limit":"0","limit_peer":"0.25","quality_in":0,"quality_out":0},
@@ -780,7 +811,7 @@ function addConnections(origin, trustLines) {
 	//should we add a halo to origin?
 	svg.select("g#haloGroup").select("circle#halo_"+origin)
 		.style("stroke", (numberOfUnseenTrustLines(nodes[nodeMap[origin]])>0)?"#aaa":"none" );
-	
+	displayingTransactionInPlace = false; //really?
 }
 
 
@@ -1137,6 +1168,7 @@ function animateLink(onOrOff, speed, from, to, cur, callback) {
 			console.log(to);
 			console.log(nodes[nodeMap[from]]);
 			console.log(nodes[nodeMap[to]]);*/
+			//console.log("ANIMATING LINK", from, to);
 			animatorLinks.push({source:nodes[nodeMap[from]], target:nodes[nodeMap[to]], value:100, currency:currency, strength:0});
 			var alink = svg.select("g#linkGroup").selectAll("line.animator").data(animatorLinks)
 				.enter().append("svg:line")
@@ -1552,9 +1584,13 @@ var txAltText = {
 	"receivefailed":"Failed to receive payment from...",
 	"intermediatefailed":"Failed to intermediate payment of...",
 	"trustout"   :"Sent trust to...",
+	"trustinfailed"    :"Failed to receive trust from...",
+	"trustoutfailed"   :"Failed to send trust to...",
 	"trustin"    :"Received trust from...",
 	"offerout"   :"Made offer to give...",
 	"offerin"    :"Accepted offer and got...",
+	"offeroutfailed"   :"Failed to make offer to give...",
+	"offerinfailed"    :"Failed to accept offer and get...",
 	"canceloffer":"Canceled offer"};
 
 function showTransactionWithHash(hash) {
@@ -1618,7 +1654,7 @@ function updateTransactions(address, appending) {
 					for (var j=0; j<meta.AffectedNodes.length; j++) {
 						var mn = meta.AffectedNodes[j].ModifiedNode || meta.AffectedNodes[j].DeletedNode || meta.AffectedNodes[j].CreatedNode;
 						var LatestFields = mn.FinalFields || mn.NewFields;
-						if (mn) {
+						if (mn && LatestFields) {
 							if (LatestFields.Account == address || (LatestFields.HighLimit && LatestFields.HighLimit.issuer == address) ) {
 								//console.log("LATEST FIELDS:", LatestFields);
 								var let = mn.LedgerEntryType;
@@ -1701,11 +1737,16 @@ function updateTransactions(address, appending) {
 			}
 			
 			transactionMap[tx.hash] = tx;
+			transactionMap[tx.hash].meta = meta;
 			var success = meta.TransactionResult == "tesSUCCESS" ? "" : "failed";
+			var result =  meta.TransactionResult == "tesSUCCESS" ? "" : "["+meta.TransactionResult+"] ";
 
+			
+			//console.log("success?", success,  meta.TransactionResult);
+			//	animateTransaction(transactionMap[hash]);
 			$('#transactionTable').append(
-				'<tr>'+
-					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
+				'<tr hash="'+tx.hash+'">'+
+					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+result+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
 					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
 					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span '+(secondAissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+secondAissuer+'"':'')+'><span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span></span>':'')):'')+
 					agoDate(tx.date)+'</span>'+
@@ -1731,6 +1772,19 @@ function updateTransactions(address, appending) {
 
 	}
 }
+
+
+
+			
+function animateInPlaceWithHash(hash) {
+	var tx = transactionMap[hash];
+	//walk the paths to see if any nodes need to be added.
+	walkPaths(tx);
+	//console.log("animating in place:", tx);
+	animateTransaction(tx);
+}
+
+
 
 var TRANSACTION_PAGE_LENGTH = 13;
 
@@ -1788,15 +1842,29 @@ function agoDate(secondsSince2000) {
 	return '<span style="margin-right:5px" class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
 }
 
+function absoluteDateOnly(secondsSince2000) {
+	var d = new Date(0);
+	d.setUTCSeconds(secondsSince2000+946684800);
+	return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()
+}
+
+function absoluteTimeOnly(secondsSince2000) {
+	var d = new Date(0);
+	d.setUTCSeconds(secondsSince2000+946684800);
+	return d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds());
+}
+
+
+
 function absoluteDate(secondsSince2000) {
 	var d = new Date(0);
 	d.setUTCSeconds(secondsSince2000+946684800);
-	return '<span class="light small mediumgray date" title="'+d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds())+'">'+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+'</span>';
+	return '<span class="light small mediumgray date" title="'+absoluteTimeOnly(secondsSince2000)+'">'+absoluteDateOnly(secondsSince2000)+'</span>';
 }
 function absoluteTime(secondsSince2000) {
 	var d = new Date(0);
 	d.setUTCSeconds(secondsSince2000+946684800);
-	return '<span class="light small mediumgray date" title="'+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+'">'+d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds())+'</span>';
+	return '<span class="light small mediumgray date" title="'+absoluteDateOnly(secondsSince2000)+'">'+absoluteTimeOnly(secondsSince2000)+'</span>';
 }
 
 
