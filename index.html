@@ -264,125 +264,134 @@ var nodeMap = {};
 nodeMap[focalNode] = 0;
 var degreeMap = {};
 degreeMap[focalNode] = 0;
-
-var server = {};
-server.socket = null; 	
-var str;
-if (Options.server.websocket_ssl) {
-	str= "wss://" + Options.server.websocket_ip + ":";
-} else {
-	str= "ws://" + Options.server.websocket_ip + ":";
-}
-str += Options.server.websocket_port;
-str += "/";
-
-server.socket = new WebSocket(str);
 var expandedNodes = {};
 var provisionallyExpandedNodes = {};
-
-server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
-	command = '{"command":"subscribe", "streams" : [ "transactions" ]}';
-	server.socket.send(command);
-	command = '{"command":"ledger", "ledger_selector":"current"}';
-	server.socket.send(command);
-	if (transaction_id && transaction_id!="") {
-		nodeMap = {};
-		degreeMap = {};
-		nodes = [];
-		command= '{"command":"tx", "transaction":"'+transaction_id+'"}';
-		server.socket.send(command);
-	} else {
-		lastFocalNode = REFERENCE_NODE;
-		expandNode(focalNode);
-		addNodes(0);
-	}
-};
 var txx;
-server.socket.onmessage = function(msg) { //Process a message received from Ripple.
-	var obj = jQuery.parseJSON(msg.data);
-	if (obj && obj.result && obj.result.lines) {
-		addConnections(obj.result.account, obj.result.lines);
-	} else if(obj.transaction) {
-		console.log("Got a transaction!");
-		$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
-		if (obj.transaction.TransactionType == "Payment") {
-			animateTransaction(obj.transaction);
-		}
-	} else if (obj && obj.result && obj.result.closed) {
-		currentLedger = obj.result.closed.ledger;
-		if (!viewingTransaction) {
-			serverGetInfo(focalNode);
-		}
-		$("#ledgernumber").text(commas(parseInt(currentLedger.seqNum)));
-		$("#totalripples").text(commas(parseInt(currentLedger.totalCoins)/1000000));
-	} else if (obj && obj.result && obj.result.account_data) {
-		if ($.isEmptyObject(obj.result.account_data)) {
-			alert("This address is not valid!");
-			console.log(obj);
-			refocus(lastFocalNode,true);
-		} else {
-			var n = nodes[nodeMap[obj.result.account_data.Account]];
-			n.account = obj.result.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
-			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
-				updated = svg.select("g#nodeGroup").select("circle#_"+obj.result.account_data.Account);
-				updated.attr("r", nodeRadius(n));
-				svg.select("g#haloGroup").select("circle#halo_"+obj.result.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
-			}
-			if (obj.result.account_data.Account == focalNode) {
-				//Update the XRP listing on the table below. (But don't rewrite the whole table)
-				$("#xrpBalance").text(commas(n.account.Balance/1000000));
-			}
-		}
-	} else if (obj && obj.result && obj.result.transactions) {
-		var n = nodes[nodeMap[obj.result.account]];
-		//console.log("GOT YOUR TRANSACTIONS!", obj.result);
-		if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
-			if (obj.result.offset == n.transactions.length) {
-				n.transactions.push.apply(n.transactions, obj.result.transactions);
-				//n.transactions.extend(obj.result.transactions); //OR WHATEVER THIS IS.
-			} else {
-				console.log("THIS SHOULD NOT HAPPEN!");
-			}
-		} else {
-			n.transactions = obj.result.transactions;
-		}
-		if (obj.result.count) {
-			n.transactionCount = obj.result.count;
-		}
-		if (obj.result.account == focalNode) {
-			updateTransactions(focalNode, true); //appending=true
-		}
-	} else if (obj && obj.result && obj.result.TransactionType) {
-		console.log("got info on transaction.");
-		console.log(obj);
-		txx = obj.result;
-		changeMode("transaction", txx);
-	} else if (obj.error) {
-		if (obj.error=="noNetwork") {
-			if (!alreadyFailed) {
-				alert("Could not connect to Ripple network - please try again later.");
-				alreadyFailed = true;
-			}
-		} else if (obj.error=="txnNotFound") {	
-			$("#loading").text("Transaction not found!").css("color","#a00");
-		} else if (obj.error=="actNotFound" || obj.error=="actMalformed") {	
-			$("#loading").text("Account not found!").css("color","#a00");
-		} else {
-			console.log("An unknown error occured.");
-			console.log(obj);
-		}
+var firstTime = true;
+
+var server = {};
+function startWebsocket() {
+
+	server.socket = null; 	
+	var str;
+	if (Options.server.websocket_ssl) {
+		str= "wss://" + Options.server.websocket_ip + ":";
 	} else {
-		console.log("Could not interpret message.");
-		console.log(obj);
+		str= "ws://" + Options.server.websocket_ip + ":";
 	}
-};
+	str += Options.server.websocket_port;
+	str += "/";
 
-server.socket.onclose = function() {
-	console.log("disconnected from websocket");
-} 
-
+	server.socket = new WebSocket(str);
 
 
+	server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
+		command = '{"command":"subscribe", "streams" : [ "transactions", "ledger" ]}';
+		server.socket.send(command);
+		command = '{"command":"ledger", "ledger_selector":"current"}';
+		server.socket.send(command);
+		if (firstTime) {
+			if (transaction_id && transaction_id!="") {
+				nodeMap = {};
+				degreeMap = {};
+				nodes = [];
+				command= '{"command":"tx", "transaction":"'+transaction_id+'"}';
+				server.socket.send(command);
+			} else {
+				lastFocalNode = REFERENCE_NODE;
+				expandNode(focalNode);
+				addNodes(0);
+			}
+		}
+		firstTime = false;
+	};
+
+	server.socket.onmessage = function(msg) { //Process a message received from Ripple.
+		var obj = jQuery.parseJSON(msg.data);
+		if (obj && obj.result && obj.result.lines) {
+			addConnections(obj.result.account, obj.result.lines);
+		} else if(obj.transaction) {
+			console.log("Got a transaction!");
+			$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
+			if (obj.transaction.TransactionType == "Payment") {
+				animateTransaction(obj.transaction);
+			}
+		} else if (obj && obj.result && obj.result.closed) {
+			currentLedger = obj.result.closed.ledger;
+			if (!viewingTransaction) {
+				serverGetInfo(focalNode);
+			}
+			$("#ledgernumber").text(commas(parseInt(currentLedger.seqNum)));
+			$("#totalripples").text(commas(parseInt(currentLedger.totalCoins)/1000000));
+		} else if (obj && obj.result && obj.result.account_data) {
+			if ($.isEmptyObject(obj.result.account_data)) {
+				alert("This address is not valid!");
+				console.log(obj);
+				refocus(lastFocalNode,true);
+			} else {
+				var n = nodes[nodeMap[obj.result.account_data.Account]];
+				n.account = obj.result.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
+				if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
+					updated = svg.select("g#nodeGroup").select("circle#_"+obj.result.account_data.Account);
+					updated.attr("r", nodeRadius(n));
+					svg.select("g#haloGroup").select("circle#halo_"+obj.result.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
+				}
+				if (obj.result.account_data.Account == focalNode) {
+					//Update the XRP listing on the table below. (But don't rewrite the whole table)
+					$("#xrpBalance").text(commas(n.account.Balance/1000000));
+				}
+			}
+		} else if (obj && obj.result && obj.result.transactions) {
+			var n = nodes[nodeMap[obj.result.account]];
+			//console.log("GOT YOUR TRANSACTIONS!", obj.result);
+			if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
+				if (obj.result.offset == n.transactions.length) {
+					n.transactions.push.apply(n.transactions, obj.result.transactions);
+					//n.transactions.extend(obj.result.transactions); //OR WHATEVER THIS IS.
+				} else {
+					console.log("THIS SHOULD NOT HAPPEN!");
+				}
+			} else {
+				n.transactions = obj.result.transactions;
+			}
+			if (obj.result.count) {
+				n.transactionCount = obj.result.count;
+			}
+			if (obj.result.account == focalNode) {
+				updateTransactions(focalNode, true); //appending=true
+			}
+		} else if (obj && obj.result && obj.result.TransactionType) {
+			console.log("got info on transaction.");
+			console.log(obj);
+			txx = obj.result;
+			changeMode("transaction", txx);
+		} else if (obj.error) {
+			if (obj.error=="noNetwork") {
+				if (!alreadyFailed) {
+					alert("Could not connect to Ripple network - please try again later.");
+					alreadyFailed = true;
+				}
+			} else if (obj.error=="txnNotFound") {	
+				$("#loading").text("Transaction not found!").css("color","#a00");
+			} else if (obj.error=="actNotFound" || obj.error=="actMalformed") {	
+				$("#loading").text("Account not found!").css("color","#a00");
+			} else {
+				console.log("An unknown error occured.");
+				console.log(obj);
+			}
+		} else {
+			console.log("Could not interpret message.");
+			console.log(obj);
+		}
+	};
+
+	server.socket.onclose = function() {
+		console.log("disconnected from websocket; connect after 5 seconds");
+		setTimeout(function(){startWebsocket();}, 5000);
+	} 
+
+}
+startWebsocket();
 
 // MODE CHANGING
 
@@ -650,9 +659,9 @@ function clickableAccountSpan(address) {
 
 function txDescription(result) {
 	console.log("TX INFO:",result);
-	var output = "<b>Amount:</b> <span class='amount'>"+
+	var output = (result.Amount?"<b>Amount:</b> <span class='amount'>"+
 		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+"</span><br/>"+
-		(result.Amount.issuer ? "<b>Issuer:</b> "+clickableAccountSpan(result.Amount.issuer)+"<br/>" : "")+
+		(result.Amount.issuer ? "<b>Issuer:</b> "+clickableAccountSpan(result.Amount.issuer)+"<br/>" : ""):"")+
 		"<b>Path:</b><ul>"+
 		(function(){
 			var output = "";
