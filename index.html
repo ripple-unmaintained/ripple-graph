@@ -8,6 +8,8 @@
 	<script type="text/javascript" src="jquery.js"></script>
 	<script type="text/javascript" src="d3.v3.min.js"></script>
 	<script type="text/javascript" src="sha1.js"></script>
+	<script type="text/javascript" src="ripple-0.7.201-debug.js"></script>
+	
 	
 	<script type="text/javascript" src="selectbox/jquery.selectbox-0.2.min.js"></script>
 	<link href="selectbox/jquery.selectbox.css" type="text/css" rel="stylesheet" />
@@ -43,6 +45,7 @@ total ripples: <span id="totalripples"></span><br/></div>
 		<option value="USD">USD - U.S. Dollars</option>
 		<option value="EUR">EUR - Euro</option>
 		<option value="JPY">JPY - Japanese Yen</option>
+		<option value="CNY">CNY - Chinese Yuan</option>
 		<option value="BTC">BTC - Bitcoins</option>
 		<option value="___">Other</option>
 	</select>
@@ -117,7 +120,7 @@ total ripples: <span id="totalripples"></span><br/></div>
 <!-- Javascript for the visualization, using the D3 library -->
 <script type="text/javascript">
 
-
+/*
 // WEBSOCKET OPTIONS
 var Options = {
 	server: {
@@ -126,7 +129,7 @@ var Options = {
 		"websocket_ssl" : true
 	}
 };
-
+*/
 
 // CONSTANTS
 var RECURSION_DEPTH = 1;
@@ -206,33 +209,15 @@ var HIGH_SATURATION_COLORS = {
 };
 var HEX_TO_PERCENT = {"0":0,"a":0.67,"f":1};
 
+var REQUEST_REPETITION_INTERVAL = 8*1000; //milliseconds
 
-// WEBSOCKET SETUP	
-
-/*
-function getQueryVariable(variable) {
-    var query = window.location.search.substring(1);
-    var vars = query.split('&');
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split('=');
-        if (decodeURIComponent(pair[0]) == variable) {
-            return decodeURIComponent(pair[1]);
-        }
-    }
-    return ""
-}
-*/
 
 
 var param = window.location.hash.replace(/\W/g, '');
 
-//var transaction_id = getQueryVariable("tx_id").replace(/\W/g, '');
-//var viewingTransaction = (transaction_id != "");
-
 var alreadyFailed = false;
 var focalNode;
 var transaction_id;
-var viewingTransaction = false;
 
 var changingFocus = false;
 
@@ -253,7 +238,7 @@ if (param == "") {
 
 var lastFocalNode = REFERENCE_NODE;
 var currentCurrency = "XRP";
-var currentLedger = {seqNum:211147};
+var currentLedger = {ledger_current_index: 2011754};
 var w = 935;  //Width
 var h = 1085; //Height
 var hh = 710; //Height above the bottom bar
@@ -269,129 +254,243 @@ var provisionallyExpandedNodes = {};
 var txx;
 var firstTime = true;
 
-var server = {};
-function startWebsocket() {
-
-	server.socket = null; 	
-	var str;
-	if (Options.server.websocket_ssl) {
-		str= "wss://" + Options.server.websocket_ip + ":";
-	} else {
-		str= "ws://" + Options.server.websocket_ip + ":";
-	}
-	str += Options.server.websocket_port;
-	str += "/";
-
-	server.socket = new WebSocket(str);
 
 
-	server.socket.onopen = function() { //Set up the connection and subscribe to the appropriate streams.
-		command = '{"command":"subscribe", "streams" : [ "transactions", "ledger" ]}';
-		server.socket.send(command);
-		command = '{"command":"ledger", "ledger_selector":"current"}';
-		server.socket.send(command);
-		if (firstTime) {
-			if (transaction_id && transaction_id!="") {
-				nodeMap = {};
-				degreeMap = {};
-				nodes = [];
-				command= '{"command":"tx", "transaction":"'+transaction_id+'"}';
-				server.socket.send(command);
-			} else {
-				lastFocalNode = REFERENCE_NODE;
-				expandNode(focalNode);
-				addNodes(0);
-			}
-		}
-		firstTime = false;
-	};
 
-	server.socket.onmessage = function(msg) { //Process a message received from Ripple.
-		var obj = jQuery.parseJSON(msg.data);
-		if (obj && obj.result && obj.result.lines) {
-			addConnections(obj.result.account, obj.result.lines);
-		} else if(obj.transaction) {
-			console.log("Got a transaction!");
-			$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
-			if (obj.transaction.TransactionType == "Payment") {
-				animateTransaction(obj.transaction);
-			}
-		} else if (obj && obj.result && obj.result.closed) {
-			currentLedger = obj.result.closed.ledger;
-			if (!viewingTransaction) {
-				serverGetInfo(focalNode);
-			}
-			$("#ledgernumber").text(commas(parseInt(currentLedger.seqNum)));
-			$("#totalripples").text(commas(parseInt(currentLedger.totalCoins)/1000000));
-		} else if (obj && obj.result && obj.result.account_data) {
-			if ($.isEmptyObject(obj.result.account_data)) {
-				alert("This address is not valid!");
-				console.log(obj);
-				refocus(lastFocalNode,true);
-			} else {
-				var n = nodes[nodeMap[obj.result.account_data.Account]];
-				n.account = obj.result.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
-				if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
-					updated = svg.select("g#nodeGroup").select("circle#_"+obj.result.account_data.Account);
-					updated.attr("r", nodeRadius(n));
-					svg.select("g#haloGroup").select("circle#halo_"+obj.result.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
-				}
-				if (obj.result.account_data.Account == focalNode) {
-					//Update the XRP listing on the table below. (But don't rewrite the whole table)
-					$("#xrpBalance").text(commas(n.account.Balance/1000000));
-				}
-			}
-		} else if (obj && obj.result && obj.result.transactions) {
-			var n = nodes[nodeMap[obj.result.account]];
-			//console.log("GOT YOUR TRANSACTIONS!", obj.result);
-			if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
-				if (obj.result.offset == n.transactions.length) {
-					n.transactions.push.apply(n.transactions, obj.result.transactions);
-					//n.transactions.extend(obj.result.transactions); //OR WHATEVER THIS IS.
-				} else {
-					console.log("THIS SHOULD NOT HAPPEN!");
-				}
-			} else {
-				n.transactions = obj.result.transactions;
-			}
-			if (obj.result.count) {
-				n.transactionCount = obj.result.count;
-			}
-			if (obj.result.account == focalNode) {
-				updateTransactions(focalNode, true); //appending=true
-			}
-		} else if (obj && obj.result && obj.result.TransactionType) {
-			console.log("got info on transaction.");
-			console.log(obj);
-			txx = obj.result;
-			changeMode("transaction", txx);
-		} else if (obj.error) {
-			if (obj.error=="noNetwork") {
-				if (!alreadyFailed) {
-					alert("Could not connect to Ripple network - please try again later.");
-					alreadyFailed = true;
-				}
-			} else if (obj.error=="txnNotFound") {	
-				$("#loading").text("Transaction not found!").css("color","#a00");
-			} else if (obj.error=="actNotFound" || obj.error=="actMalformed") {	
-				$("#loading").text("Account not found!").css("color","#a00");
-			} else {
-				console.log("An unknown error occured.");
-				console.log(obj);
-			}
+// Setup ripple-lib
+var Remote = ripple.Remote;
+var remote = new Remote({
+	trace: false,
+	trusted: true,
+	local_signing: true,
+	connection_offest: 60,
+	servers: [{ 
+		host: 's1.ripple.com'
+		, port: 443
+		, secure: true, pool: 3
+	}]
+});
+
+
+
+//Opening sequence:
+remote.connect(function() {
+	//Subscriptions
+
+	remote.on('ledger_closed', function(x,y){
+		currentLedger = x;
+		$("#ledgernumber").text(commas(parseInt(currentLedger.ledger_index)));
+		remote.request_ledger('closed', handleLedger);
+	});
+	remote.on('transaction_all', handleTransaction);
+	
+	//Get current ledger
+	remote.request_ledger('closed', handleLedger);
+
+	if (firstTime) {
+		if (transaction_id && transaction_id!="") {
+			nodeMap = {};
+			degreeMap = {};
+			nodes = [];
+			remote.request_tx(transaction_id, handleIndividualTransaction);
 		} else {
-			console.log("Could not interpret message.");
-			console.log(obj);
+			lastFocalNode = REFERENCE_NODE;
+			expandNode(focalNode);
+			addNodes(0);
+			serverGetInfo(focalNode);
 		}
-	};
+	}
+	firstTime = false;
+});
 
-	server.socket.onclose = function() {
-		console.log("disconnected from websocket; connect after 5 seconds");
-		setTimeout(function(){startWebsocket();}, 5000);
-	} 
+var pendingRequests = {};
 
+var requestRepetitionInterval = setInterval(function(){
+	//console.log("Checking for pending requests");
+	var now = new Date().getTime();
+	var idsToDelete = [];
+	var entriesToAdd = {};
+	for (var id in pendingRequests) {
+		if (pendingRequests.hasOwnProperty(id)) {
+			var req = pendingRequests[id];
+			if (req.timestamp + REQUEST_REPETITION_INTERVAL <= now) {
+				console.log("Repeating request");
+				var newID = req.func();
+				entriesToAdd[newID] = {func: req.func, timestamp:now};
+				idsToDelete.push(id);
+			} else {
+				//console.log("Too soon to repeat.");
+			}
+		}
+	}
+	for (var i=0; i<idsToDelete.length; i++) {
+		delete pendingRequests[idsToDelete[i]];
+	}
+	for (var newID in entriesToAdd) {
+		if (entriesToAdd.hasOwnProperty(newID)) {
+			pendingRequests[newID] = entriesToAdd[newID];
+		}
+	}
+}, REQUEST_REPETITION_INTERVAL);
+
+
+
+//Repeatable methods for fetching from server
+function serverGetLines(address) {
+	if ($.isEmptyObject(nodes[nodeMap[address]].trustLines)) {
+		//Get trust lines for address         ?  ??current?
+		var rral = (function() {return function() {
+			var x = remote.request_account_lines(address, 0, 0, handleLines);
+			return x.message.id;
+		}})();
+		var reqID = rral();
+		pendingRequests[reqID] = {
+			func:rral,
+			timestamp:(new Date().getTime())
+		}
+		
+	} else {
+		addConnections(address, nodes[nodeMap[address]].trustLines);
+	}
 }
-startWebsocket();
+
+function serverGetInfo(address) {
+	//console.log("serverGetInfo", address);
+	if (nodes[nodeMap[address]] && nodes[nodeMap[address]].account.index) {
+		// Don't do anything if we already have information about this account.
+		// TODO: Why does this never happen?
+	} else {
+		//Get account info for address
+		var rrai = (function() {return function() {
+			var x = remote.request_account_info(address, handleAccountData);
+			return x.message.id;
+		}})();
+		var reqID = rrai();
+		pendingRequests[reqID] = {
+			func:rrai,
+			timestamp:(new Date().getTime())
+		};
+	}
+}
+
+var TRANSACTION_PAGE_LENGTH = 13;
+
+function getNextTransactionPage() {
+	//console.log("getNextTransactionPage");
+	//request transactions for the current account, with offset = nodes[nodeMap[address]].transactions.length
+	var rrat = (function() {return function(){
+		var x = remote.request_account_tx({
+			account: focalNode,
+			limit: TRANSACTION_PAGE_LENGTH,
+			ledger_index_min: -1,
+			ledger_index_max: -1,
+			forward: false,
+			marker: nodes[nodeMap[focalNode]].transactionMarker
+		}, handleAccountTransactions);
+		return x.message.id;
+	}})();
+	var reqID = rrat();
+	pendingRequests[reqID] = {
+		func:rrat,
+		timestamp:(new Date().getTime())
+	};
+	/*command = '{"command":"account_tx", "descending":true, "account":"'+focalNode+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "offset":'+nodes[nodeMap[focalNode]].transactions.length+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
+	server.socket.send(command);*/
+	
+	
+	//when the answer comes back, see if it's new information.
+	//if so, update WITH THE NEW INFO ONLY (i.e., don't clear the whole table, only do
+	//$("#transactionThrobber").remove();
+	//and add the new stuff.
+}
+
+
+//Handlers
+
+function handleLines(err, obj) {
+	//console.log("Got trust lines", obj);
+	delete pendingRequests[this.message.id];
+	addConnections(obj.account, obj.lines);
+}
+
+function handleTransaction(obj) {
+	//console.log("Got transaction", obj);
+	//delete pendingRequests[this.message.id];
+	$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
+	if (obj.transaction.TransactionType == "Payment") {
+		animateTransaction(obj.transaction);
+	}
+}
+
+function handleLedger(err, obj) {
+	//console.log("Got ledger", obj);
+	currentLedger = obj.ledger;
+	$("#ledgernumber").text(commas(parseInt(currentLedger.ledger_index)));
+	$("#totalripples").text(commas(parseInt(currentLedger.total_coins)/1000000));
+}
+
+function handleAccountData(err, obj) {
+	//console.log("Got account data", err, obj);
+	delete pendingRequests[this.message.id];
+	if ($.isEmptyObject(obj.account_data)) {
+		alert("This address is not valid!");
+		console.log(obj);
+		refocus(lastFocalNode,true);
+	} else {
+		var n = nodes[nodeMap[obj.account_data.Account]];
+		n.account = obj.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
+		if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
+			updated = svg.select("g#nodeGroup").select("circle#_"+obj.account_data.Account);
+			updated.attr("r", nodeRadius(n));
+			svg.select("g#haloGroup").select("circle#halo_"+obj.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
+		}
+		if (obj.account_data.Account == focalNode) {
+			//Update the XRP listing on the table below. (But don't rewrite the whole table)
+			$("#xrpBalance").text(commas(n.account.Balance/1000000));
+		}
+	}
+}
+
+function handleAccountTransactions(err, obj) {
+	//console.log("Got account transactions", err, obj, this.message.id);
+	delete pendingRequests[this.message.id];
+	var n = nodes[nodeMap[obj.account]];
+	//console.log("GOT YOUR TRANSACTIONS!", obj.;
+	var noMoreTransactions = true;
+	if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
+		//You don't want to add the same set of transactions more than once.
+		//So, only add the transactions if one of the following is true:
+		//1. We have no marker stored locally.
+		//2. The message had no marker, and we are not yet finished with the list.
+		//3. The message did have a marker, but its ledger number is less than that of the locally stored marker.
+		if (!n.marker || (!obj.marker && !n.transactionsFinished) || (obj.marker && n.marker.ledger>obj.marker.ledger)) {
+			n.transactions.push.apply(n.transactions, obj.transactions);
+		}
+	} else {
+		n.transactions = obj.transactions;
+	}
+	
+	if (obj.marker) {
+		n.transactionMarker = obj.marker;
+	} else {
+		n.transactionsFinished = true;
+	}
+	if (obj.account == focalNode) {
+		updateTransactions(focalNode, true); //appending=true
+	}
+}
+
+function handleIndividualTransaction(err, obj) {
+	//console.log("got info on transaction", obj);
+	delete pendingRequests[this.message.id];
+	txx = obj;
+	changeMode("transaction", txx);
+}
+
+
+
+
+
 
 // MODE CHANGING
 
@@ -824,28 +923,6 @@ function addConnections(origin, trustLines) {
 }
 
 
-function serverGetLines(address) {
-	if ($.isEmptyObject(nodes[nodeMap[address]].trustLines)) {
-		command= '{"command":"account_lines", "ledger_index":"-1", "account":"'+address+'"}';
-		server.socket.send(command);
-	} else {
-		addConnections(address, nodes[nodeMap[address]].trustLines);
-	}
-}
-function serverGetInfo(address) {
-	if (nodes[nodeMap[address]] && nodes[nodeMap[address]].account.index) {
-		// Don't do anything if we already have information about this account.
-		// TODO: Why does this never happen?
-	} else {
-		command = '{"command":"account_info", "ident":"'+address+'"}'; 
-		server.socket.send(command);
-		
-		countClause = nodes[nodeMap[address]] && nodes[nodeMap[address]].transactions ? '' : '"count":true, ';
-		command = '{"command":"account_tx", "descending":true, '+countClause+'"account":"'+address+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
-		server.socket.send(command);
-		
-	}
-}
 
 var svg = d3.select("#visualization")
 	.append("svg:svg")
@@ -1013,6 +1090,9 @@ function expandNode(address) {
 	if ("undefined" == typeof nodeMap[address]) {
 		refocus(address, false);
 	} else {
+		if (!nodes[nodeMap[address]].transactions || nodes[nodeMap[address]].transactions.length === 0) {
+			getNextTransactionPage();
+		}
 		degreeMap = {};
 		degreeMap[address] = 0;
 		reassignColors(address);
@@ -1770,13 +1850,15 @@ function updateTransactions(address, appending) {
 		}
 		
 		
-		if (nodes[nodeMap[address]].transactions.length < nodes[nodeMap[address]].transactionCount) { //Are there more?
+		if (!nodes[nodeMap[address]].transactionsFinished) { //Are there more?
 			$('#transactionTable').append('<tr id="transactionThrobber"><td colspan=3 style="text-align:center; padding:10px"><img src="throbber4.gif" width=30 height=30 /></td></tr>');
 			$('#transactionThrobber').bind('inview', function (event, visible) {
 				if (visible == true) {
 					getNextTransactionPage();
 				}
 			});
+		} else {
+			console.log("Looks like we're finished?", nodes[nodeMap[address]]);
 		}
 
 	}
@@ -1795,19 +1877,7 @@ function animateInPlaceWithHash(hash) {
 
 
 
-var TRANSACTION_PAGE_LENGTH = 13;
 
-function getNextTransactionPage() {
-	//request transactions for the current account, with offset = nodes[nodeMap[address]].transactions.length
-	command = '{"command":"account_tx", "descending":true, "account":"'+focalNode+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "offset":'+nodes[nodeMap[focalNode]].transactions.length+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
-	server.socket.send(command);
-	
-	
-	//when the answer comes back, see if it's new information.
-	//if so, update WITH THE NEW INFO ONLY (i.e., don't clear the whole table, only do
-	//$("#transactionThrobber").remove();
-	//and add the new stuff.
-}
 
 function agoDate(secondsSince2000) {
 	var currentTime = new Date().getTime() / 1000 - 946684800;
