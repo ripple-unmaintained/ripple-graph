@@ -410,7 +410,7 @@ function getNextTransactionPage() {
 function handleLines(err, obj) {
 	//console.log("Got trust lines", obj);
 	delete pendingRequests[this.message.id];
-	if (err && err.remote.error === "actNotFound" || err.remote.error === "actMalformed" ) {
+	if (err && err.remote && (err.remote.error === "actNotFound" || err.remote.error === "actMalformed") ) {
 		$("#loading").text("Account not found!").css("color","#a00");
 	} else {
 		addConnections(obj.account, obj.lines);
@@ -435,7 +435,7 @@ function handleLedger(err, obj) {
 
 function handleAccountData(err, obj) {
 	delete pendingRequests[this.message.id];
-	if (err && err.remote.error === "actNotFound" || err.remote.error === "actMalformed" ) {
+	if (err && err.remote && (err.remote.error === "actNotFound" || err.remote.error === "actMalformed" )) {
 		$("#loading").text("Account not found!").css("color","#a00");
 	} else {
 		if ($.isEmptyObject(obj.account_data)) {
