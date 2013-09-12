@@ -410,7 +410,11 @@ function getNextTransactionPage() {
 function handleLines(err, obj) {
 	//console.log("Got trust lines", obj);
 	delete pendingRequests[this.message.id];
-	addConnections(obj.account, obj.lines);
+	if (err && err.remote.error === "actNotFound" || err.remote.error === "actMalformed" ) {
+		$("#loading").text("Account not found!").css("color","#a00");
+	} else {
+		addConnections(obj.account, obj.lines);
+	}
 }
 
 function handleTransaction(obj) {
@@ -430,25 +434,32 @@ function handleLedger(err, obj) {
 }
 
 function handleAccountData(err, obj) {
-	//console.log("Got account data", err, obj);
 	delete pendingRequests[this.message.id];
-	if ($.isEmptyObject(obj.account_data)) {
-		alert("This address is not valid!");
-		console.log(obj);
-		refocus(lastFocalNode,true);
+	if (err && err.remote.error === "actNotFound" || err.remote.error === "actMalformed" ) {
+		$("#loading").text("Account not found!").css("color","#a00");
 	} else {
-		var n = nodes[nodeMap[obj.account_data.Account]];
-		n.account = obj.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
-		if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
-			updated = svg.select("g#nodeGroup").select("circle#_"+obj.account_data.Account);
-			updated.attr("r", nodeRadius(n));
-			svg.select("g#haloGroup").select("circle#halo_"+obj.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
-		}
-		if (obj.account_data.Account == focalNode) {
-			//Update the XRP listing on the table below. (But don't rewrite the whole table)
-			$("#xrpBalance").text(commas(n.account.Balance/1000000));
+		if ($.isEmptyObject(obj.account_data)) {
+			alert("This address is not valid!");
+			console.log(obj);
+			refocus(lastFocalNode,true);
+		} else {
+			var n = nodes[nodeMap[obj.account_data.Account]];
+			n.account = obj.account_data; //XXXX Uncaught TypeError: Cannot set property 'account' of undefined
+			if (currentCurrency == "XRP") { // Change the size of the circles, and recalculate the arrows.
+				updated = svg.select("g#nodeGroup").select("circle#_"+obj.account_data.Account);
+				updated.attr("r", nodeRadius(n));
+				svg.select("g#haloGroup").select("circle#halo_"+obj.account_data.Account).attr("r", HALO_MARGIN+nodeRadius(n));;
+			}
+			if (obj.account_data.Account == focalNode) {
+				//Update the XRP listing on the table below. (But don't rewrite the whole table)
+				$("#xrpBalance").text(commas(n.account.Balance/1000000));
+			}
 		}
 	}
+
+	//console.log("Got account data", err, obj);
+
+
 }
 
 function handleAccountTransactions(err, obj) {
