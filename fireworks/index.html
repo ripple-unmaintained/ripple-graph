@@ -11,12 +11,28 @@
         color:#fff;
         overflow: hidden;
       }
+      #expandButton {
+        position: absolute;
+        width: 65px;
+        height: 67px;
+        cursor: pointer;
+        transition: .1s all ease-out;
+        -webkit-transition: .1s all ease-out;
+        -moz-transition: .1s all ease-out;
+      }
+      #expandButton.throb {
+        transform: scale(1.2);
+        -webkit-transform: scale(1.2);
+        -moz-transform: scale(1.2);
+      }
     </style>
   </head>
+  <script>
+  </script>
   <body onload="checkBrowserAndLoad();">
     <h1 id="unsupportedMessage" style="display:none;">Sorry, your browser isn't supported! Try Chrome or Firefox instead.</h1>
     <div id='graphContainer' style="position: absolute; width: 100%; height: 100%;"></div>
-    <img src="logo.png" id="expandButton" width="65" height="67" style="position:absolute; cursor:pointer" onclick="beginExpansion()"/>
+    <img src="logo.png" id="expandButton" onclick="beginExpansion()"/>
 
     <script>
     var ONLINE = false;
@@ -43,12 +59,12 @@
 
     var server = {};
 
-    function startWebsocket() {
+    function startWebsocket(callback) {
       server.socket = null;
 
       var url = (Options.server.websocket_ssl ? 'wss://' : 'ws://')
       + Options.server.websocket_ip + ':'
-      + Options.server.websocekt_port;
+      + Options.server.websocket_port;
 
       server.socket = new WebSocket(url);
 
@@ -127,7 +143,7 @@
     }
 
     function beginExpansion() {
-      $("#expandButton").css("display","none");
+      $("#expandButton").hide();
       graph.addNode(STARTING_ADDRESS);
       requestTrustLines(STARTING_ADDRESS);
     }
@@ -185,10 +201,12 @@
       renderer.run();
 
       function relocateTheButton() {
-        $("#expandButton")
-        .css("left",parseInt($("canvas").attr("width"))/2-WIDTH_OFFSET)
-        .css("top",parseInt($("canvas").attr("height"))/2-HEIGHT_OFFSET);
+        $("#expandButton").css({
+          left:  Math.floor($('canvas').width() / 2) - WIDTH_OFFSET,
+          top:   Math.floor($('canvas').height() / 2) - HEIGHT_OFFSET
+        });
       }
+
       window.onresize = relocateTheButton;
       relocateTheButton();
     }
@@ -346,6 +364,10 @@
             replaceProperties : function(replacedNode, newNode) {},
           };
     }
+
+    setInterval(function() {
+        $('#expandButton').toggleClass('throb');
+    }, 1000 * 3);
     </script>
     </body>
     </html>
