@@ -78,16 +78,13 @@
     }
 
     function checkBrowserAndLoad() {
-      if (navigator.userAgent.indexOf('Firefox') != -1 && parseFloat(navigator.userAgent.substring(navigator.userAgent.indexOf('Firefox') + 8)) >= 3.6) {
-        //Allow Firefox
-        loadGraph();
-      } else if (navigator.userAgent.indexOf('Chrome') != -1 && parseFloat(navigator.userAgent.substring(navigator.userAgent.indexOf('Chrome') + 7).split(' ')[0]) >= 15){
-        //Allow Chrome
+      var hasWebSocket = ('WebSocket' in window && window.WebSocket.CLOSING === 2);
+      var hasWebGL = ('WebGLRenderingContext' in window);
+      if (hasWebSocket && hasWebGL) {
         loadGraph();
       } else {
-        //Block
-        $("#unsupportedMessage").css("display","block");
-        $("#expandButton").css("display","none");
+        $("#unsupportedMessage").show();
+        $("#expandButton").show();
       }
     }
 
