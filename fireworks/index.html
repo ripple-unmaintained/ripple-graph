@@ -104,7 +104,6 @@
     function checkBrowserAndLoad() {
       var hasWebSocket = ('WebSocket' in window && window.WebSocket.CLOSING === 2);
       var hasWebGL = ('WebGLRenderingContext' in window);
-      hasWebGL = false;
       if (hasWebSocket && hasWebGL) {
         loadGraph();
       } else {
