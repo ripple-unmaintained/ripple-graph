@@ -25,6 +25,14 @@
         -webkit-transform: scale(1.2);
         -moz-transform: scale(1.2);
       }
+      #unsupportedMessage {
+        background: #C73E3A;
+        font-family:helvetica, arial, sans-serif;
+        font-size:20px;
+        margin:0 auto;
+        line-height:100px;
+        text-align:center;
+      }
     </style>
   </head>
   <script>
@@ -96,11 +104,12 @@
     function checkBrowserAndLoad() {
       var hasWebSocket = ('WebSocket' in window && window.WebSocket.CLOSING === 2);
       var hasWebGL = ('WebGLRenderingContext' in window);
+      hasWebGL = false;
       if (hasWebSocket && hasWebGL) {
         loadGraph();
       } else {
         $("#unsupportedMessage").show();
-        $("#expandButton").show();
+        $("#expandButton").hide();
       }
     }
 
