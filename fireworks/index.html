@@ -47,8 +47,6 @@
       }
     </style>
   </head>
-  <script>
-  </script>
   <body onload="checkBrowserAndLoad();">
     <h1 id="unsupportedMessage">Your browser is missing support for WebGL.</h1>
     <div id='graphContainer'></div>
@@ -111,6 +109,7 @@
     }
 
     if (ONLINE) {
+	  TRUST_LINES_DATABASE = {};
       startWebsocket();
     }
 
@@ -139,7 +138,7 @@
 
     function requestTrustLines(address) {
       if (ONLINE) {
-        command='{"command":"account_lines","ledger_index":"-1","account":"'+address+'"}';
+        var command='{"command":"account_lines","ledger_index":"-1","account":"'+address+'"}';
         server.socket.send(command);
       } else {
         addConnections(address, TRUST_LINES_DATABASE[address]);
@@ -392,5 +391,5 @@
         $('#expandButton').toggleClass('throb');
     }, 1000 * 1);
     </script>
-    </body>
-    </html>
+  </body>
+</html>
