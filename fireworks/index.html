@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset='utf-8'/>
     <title>Ripple Fireworks Show</title>
     <script type="text/javascript" src="vivagraph.js"></script>
     <script type="text/javascript" src="jquery.js"></script>
-    <script type="text/javascript" src="trustlinesdatabase.js"></script>
     <style>
       body {
         background: #000;
@@ -13,6 +13,7 @@
       }
       #expandButton {
         position: absolute;
+        display: none;
         width: 65px;
         height: 67px;
         cursor: pointer;
@@ -26,6 +27,7 @@
         -moz-transform: scale(1.2);
       }
       #unsupportedMessage {
+        display: none;
         background: #C73E3A;
         font-family:helvetica, arial, sans-serif;
         font-size:20px;
@@ -33,15 +35,26 @@
         line-height:100px;
         text-align:center;
       }
+      #graphContainer {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      #protector {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
     </style>
   </head>
   <script>
   </script>
   <body onload="checkBrowserAndLoad();">
-    <h1 id="unsupportedMessage" style="display:none;">Sorry, your browser isn't supported! Try Chrome or Firefox instead.</h1>
-    <div id='graphContainer' style="position: absolute; width: 100%; height: 100%;"></div>
+    <h1 id="unsupportedMessage">Your browser is missing support for WebGL.</h1>
+    <div id='graphContainer'></div>
+    <div id='protector'></div>
     <img src="logo.png" id="expandButton" onclick="beginExpansion()"/>
-
+    <script type="text/javascript" src="trustlinesdatabase.js"></script>
     <script>
     var ONLINE = false;
     var STARTING_ADDRESS = "r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV";
@@ -49,11 +62,11 @@
     var HEIGHT_OFFSET = 22; //Centering logo
     var BITSTAMP = "rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B";
     var FORCE_PARAMETERS = {
-      springLength : 30,
-      springCoeff : 0.00002,
-      dragCoeff : 0.02,
-      gravity : -1.2,
-      theta : 0.8
+      springLength :  30,
+      springCoeff :   0.00002,
+      dragCoeff :     0.02,
+      gravity :       -1.2,
+      theta :         0.8
     }
 
     // WEBSOCKET OPTIONS
@@ -102,7 +115,7 @@
     }
 
     function checkBrowserAndLoad() {
-      var hasWebSocket = ('WebSocket' in window && window.WebSocket.CLOSING === 2);
+      var hasWebSocket = !ONLINE || ('WebSocket' in window && window.WebSocket.CLOSING === 2);
       var hasWebGL = ('WebGLRenderingContext' in window);
       if (hasWebSocket && hasWebGL) {
         loadGraph();
@@ -152,6 +165,7 @@
 
     function beginExpansion() {
       $("#expandButton").hide();
+      $("#protector").hide();
       graph.addNode(STARTING_ADDRESS);
       requestTrustLines(STARTING_ADDRESS);
     }
@@ -210,6 +224,7 @@
 
       function relocateTheButton() {
         $("#expandButton").css({
+          display: 'block',
           left:  Math.floor($('canvas').width() / 2) - WIDTH_OFFSET,
           top:   Math.floor($('canvas').height() / 2) - HEIGHT_OFFSET
         });
@@ -375,7 +390,7 @@
 
     setInterval(function() {
         $('#expandButton').toggleClass('throb');
-    }, 1000 * 3);
+    }, 1000 * 1);
     </script>
     </body>
     </html>
