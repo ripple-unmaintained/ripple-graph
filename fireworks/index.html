@@ -13,7 +13,6 @@
       }
       #expandButton {
         position: absolute;
-        display: none;
         width: 65px;
         height: 67px;
         cursor: pointer;
@@ -163,6 +162,7 @@
     }
 
     function beginExpansion() {
+	  clearTimeout(autotrigger);
       $("#expandButton").hide();
       $("#protector").hide();
       graph.addNode(STARTING_ADDRESS);
@@ -223,7 +223,6 @@
 
       function relocateTheButton() {
         $("#expandButton").css({
-          display: 'block',
           left:  Math.floor($('canvas').width() / 2) - WIDTH_OFFSET,
           top:   Math.floor($('canvas').height() / 2) - HEIGHT_OFFSET
         });
@@ -386,7 +385,7 @@
             replaceProperties : function(replacedNode, newNode) {},
           };
     }
-
+	var autotrigger = setTimeout(beginExpansion,5000);
     setInterval(function() {
         $('#expandButton').toggleClass('throb');
     }, 1000 * 1);
