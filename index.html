@@ -1553,6 +1553,7 @@ function refocus(focus, erase, noExpand) {
 	colorRogueNodes();
 	serverGetInfo(focalNode);
 	updateInformation(focus);
+  getNextTransactionPage();
 }
 
 
@@ -2059,6 +2060,7 @@ window.onhashchange = function(){
 		} else {
 			//do nothing
 		}
+    
 	} else {
 		//console.log("REDUNDANT!");
 	}
