@@ -145,7 +145,10 @@
     }
 
     function addConnections(source, trustLines) {
-      TRUST_LINES_DATABASE[source] = trustLines;
+      if (!trustLines) {return;}
+      if (ONLINE) {
+        TRUST_LINES_DATABASE[source] = trustLines;
+      }
       for (var i=0; i<trustLines.length; i++) {
         var tr = trustLines[i];
         if (!graph.getNode(tr.account)) {
