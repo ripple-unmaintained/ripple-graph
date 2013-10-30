@@ -772,7 +772,7 @@ function txDescription(result) {
   var xrpExpense;
   for (var i=0; i<result.meta.AffectedNodes.length; i++) {
     var an = result.meta.AffectedNodes[i];
-    if (an.ModifiedNode && an.ModifiedNode.LedgerEntryType==="AccountRoot" && an.ModifiedNode.FinalFields.Account==="rpcRgbYy9CUAYADeueKmAKZz12wXi9fVNS") {
+    if (an.ModifiedNode && an.ModifiedNode.LedgerEntryType==="AccountRoot" && an.ModifiedNode.FinalFields.Account===result.Account) {
       xrpExpense = {before:an.ModifiedNode.PreviousFields.Balance/1000000 , after:an.ModifiedNode.FinalFields.Balance/1000000};
       break;
     }
@@ -800,7 +800,7 @@ function txDescription(result) {
 			return output;
 		})()+
 		"</ul>"+"<b>Result:</b> "+(result.meta?(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span>":"N/A")+"<br/>"+
-		(xrpExpense ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP (&ndash;"+commas(xrpExpense.before-xrpExpense.after)+" XRP)<br/>" : "")+
+		(xrpExpense ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP (&ndash;"+commas(Math.round(1000000*(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
     (result.date ? "<b>Date:</b> "+absoluteDateOnly(result.date)+" "+absoluteTimeOnly(result.date)+"<br/>" : "")+
 		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
