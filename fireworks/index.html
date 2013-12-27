@@ -108,7 +108,7 @@
     }
 
     if (ONLINE) {
-	  TRUST_LINES_DATABASE = {};
+      TRUST_LINES_DATABASE = {};
       startWebsocket();
     }
 
@@ -154,13 +154,18 @@
         if (!graph.getNode(tr.account)) {
           requestTrustLinesOnDelay(tr.account);
         }
-        if (tr.limit_peer != 0) {
-          graph.addLink(source, tr.account);
-        } else /*if (tr.limit != 0)*/ {
-          //This is commented out in order to avoid rogue nodes,
-          //but it's not strictly speaking accurate.
-          graph.addLink(tr.account, source);
-        }
+        setTimeout( (function() {
+          var s = source;
+          var a = tr.account;
+          var tlp = Number(tr.limit_peer);
+          return function() {
+            if (tlp !== 0) {
+              graph.addLink(s, a);
+            } else /*if (tr.limit!=0)*/{
+              graph.addLink(a, s);
+            }
+          }
+        })(), Math.random()*trustLines.length);
       }
     }
 
