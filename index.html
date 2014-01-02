@@ -677,7 +677,6 @@ function eraseGraph() {
 	panAndZoom();
 	$("#zoomInButton").attr("disabled","disabled");
 
-	panOffset = [lastD3ZoomEvent.translate[0], lastD3ZoomEvent.translate[1]];
 	svg.select("g#nodeGroup").selectAll("circle.node").data([]).exit().remove();
 	svg.select("g#linkGroup").selectAll("line")       .data([]).exit().remove();
 	svg.select("g#haloGroup").selectAll("circle.halo").data([]).exit().remove();
@@ -957,27 +956,16 @@ var svg = d3.select("#visualization")
 		}
 	})
 	.style("float","left").style("border", "1px solid #c8c8c8")
-	.style("margin-right","10").call(d3.behavior.zoom({
-        dblclick: false,
-        wheel: false
-    }).on("zoom", redraw)).on("mousewheel.zoom",null).on("dblclick.zoom",null);
+	.style("margin-right","10").call(d3.behavior.drag().on("drag", redraw));
 
 var zoomLevel = 1;
 var translationX = 0;
 var translationY = 0;
-/*TODO: Fix this bug in Firefox, where the graph pans strangely when you scroll the mouse wheel. (It should do nothing.)*/
-var lastD3ZoomEvent = {scale:1, translate:[0,0]};
 var panOffset = [0,0];
 function redraw() {
-	var translation = d3.event.translate;
-	if (d3.event.scale == lastD3ZoomEvent.scale) {
-		translationX = translation[0] - panOffset[0];
-		translationY = translation[1] - panOffset[1];
-		panAndZoom();
-	} else {
-		panOffset = [panOffset[0] + (d3.event.translate[0] - lastD3ZoomEvent.translate[0]), (panOffset[1] + d3.event.translate[1] - lastD3ZoomEvent.translate[1])];
-	}
-	lastD3ZoomEvent = jQuery.extend(true, {}, d3.event);
+  translationX += d3.event.dx;
+  translationY += d3.event.dy;
+  panAndZoom();
 }	
 
 
