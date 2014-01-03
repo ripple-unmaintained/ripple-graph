@@ -799,7 +799,7 @@ function txDescription(result) {
 			return output;
 		})()+
 		"</ul>"+"<b>Result:</b> "+(result.meta?(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span>":"N/A")+"<br/>"+
-		(xrpExpense ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP (&ndash;"+commas(Math.round(1000000*(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
+		(xrpExpense ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP ("+(xrpExpense.after>=xrpExpense.before?"+":"&ndash;")+commas(Math.round(1000000*Math.abs(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
     (result.date ? "<b>Date:</b> "+absoluteDateOnly(result.date)+" "+absoluteTimeOnly(result.date)+"<br/>" : "")+
 		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
@@ -1565,28 +1565,29 @@ function abbreviate(address) {
 	return address.slice(0,25)+"...";
 }
 
-function magnitude(factor) {
-	if (factor <= 1000000000000000) {
-		return {
-			1: '',
-			1000: 'K',
-			1000000: 'M',
-			1000000000: 'B',
-			1000000000000: 'T',
-			1000000000000000: 'Q'}[factor];
-	} else {
-		return "&times;10<sup>"+Math.round(Math.log(factor) / Math.LN10)+"</sup>";
-	}
+function magnitude(oom) {
+  var mfo3 = Math.floor(oom/3);
+  var text = {1:"K", 2:"M", 3:"B", 4:"T", 5:"Q"}[mfo3];
+  var value;
+  if (text) {
+    value = Math.pow(1000, mfo3);
+  } else {
+    value = Math.pow(10, oom);
+    text = "&times;10<sup>"+(""+oom).replace("-","&#8209;")+"</sup>";
+  }
+  return {value:value, text:text};
 }
 
 function roundNumber(number) {
-	if (Math.abs(number) < 10000.00) {
+  var man = Math.abs(number);
+	if (number == 0 || (man < 100000.00 && man > 0.00001)) {
 		return commas(Math.round(number*100)/100);
 	} else {
-		var logarithm = Math.floor(Math.log(Math.abs(number)) / Math.LN10);
-		var factor = Math.pow(1000,Math.floor((logarithm - 4)/3));
-		var rounded = Math.round(number/factor);
-		return commas(rounded) + magnitude(factor);
+		var oom = Math.floor((Math.log(man)+0.00000000000001) / Math.LN10);
+		console.log("thousands", Math.floor(oom/3));
+    var mag = magnitude(oom);
+    var rounded = Math.round(number/mag.value*100)/100;
+		return commas(rounded) + mag.text;
 	}
 }
 
@@ -1689,7 +1690,9 @@ var txAltText = {
 	"offerin"    :"Accepted offer and got...",
 	"offeroutfailed"   :"Failed to make offer to give...",
 	"offerinfailed"    :"Failed to accept offer and get...",
-	"canceloffer":"Canceled offer"};
+	"canceloffer":"Canceled offer",
+  "accountset":"Edited account properties"
+};
 
 function showTransactionWithHash(hash) {
 	changingFocus = true;
@@ -1810,7 +1813,9 @@ function updateTransactions(address, appending) {
 				}
 			} else if (tx.TransactionType == "OfferCancel") {
 				transactionType = "canceloffer";
-			} else {console.log("Could not interpret transaction: "+tx.transactionType);}
+			} else if (tx.TransactionType == "AccountSet") {
+        transactionType = "accountset";
+      } else {console.log("Could not interpret transaction: "+tx.transactionType);}
 
 			if (amount) {
 				if (amount.currency) {
