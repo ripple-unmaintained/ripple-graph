@@ -110,8 +110,6 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 </div><!-- end information at the bottom -->
 
-
-
 </div><!-- END VISUALIZATION DIV -->
 
 
@@ -132,6 +130,7 @@ var Options = {
 */
 
 // CONSTANTS
+var UNIX_RIPPLE_TIME = 946684800;
 var RECURSION_DEPTH = 1;
 var REFERENCE_NODE = 'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
 var HALO_MARGIN = 6;
@@ -276,7 +275,6 @@ var remote = new Remote({
 //Opening sequence:
 remote.connect(function() {
 	//Subscriptions
-
 	remote.on('ledger_closed', function(x,y){
 		currentLedger = x;
 		$("#ledgernumber").text(commas(parseInt(currentLedger.ledger_index)));
@@ -306,7 +304,6 @@ remote.connect(function() {
 var pendingRequests = {};
 
 var requestRepetitionInterval = setInterval(function(){
-	//console.log("Checking for pending requests");
 	var now = new Date().getTime();
 	var idsToDelete = [];
 	var entriesToAdd = {};
@@ -318,8 +315,6 @@ var requestRepetitionInterval = setInterval(function(){
 				var newID = req.func();
 				entriesToAdd[newID] = {func: req.func, timestamp:now};
 				idsToDelete.push(id);
-			} else {
-				//console.log("Too soon to repeat.");
 			}
 		}
 	}
@@ -376,7 +371,6 @@ function serverGetInfo(address) {
 var TRANSACTION_PAGE_LENGTH = 13;
 
 function getNextTransactionPage() {
-	//console.log("getNextTransactionPage");
 	//request transactions for the current account, with offset = nodes[nodeMap[address]].transactions.length
 	var rrat = (function() {return function(){
 		var x = remote.request_account_tx({
@@ -394,10 +388,6 @@ function getNextTransactionPage() {
 		func:rrat,
 		timestamp:(new Date().getTime())
 	};
-	/*command = '{"command":"account_tx", "descending":true, "account":"'+focalNode+'", "limit":'+TRANSACTION_PAGE_LENGTH+', "offset":'+nodes[nodeMap[focalNode]].transactions.length+', "ledger_index_min":-1, "ledger_index_max":-1}'; 
-	server.socket.send(command);*/
-	
-	
 	//when the answer comes back, see if it's new information.
 	//if so, update WITH THE NEW INFO ONLY (i.e., don't clear the whole table, only do
 	//$("#transactionThrobber").remove();
@@ -408,7 +398,6 @@ function getNextTransactionPage() {
 //Handlers
 
 function handleLines(err, obj) {
-	//console.log("Got trust lines", obj);
 	delete pendingRequests[this.message.id];
 	if (err && err.remote && (err.remote.error === "actNotFound" || err.remote.error === "actMalformed") ) {
 		$("#loading").text("Account not found!").css("color","#a00");
@@ -418,8 +407,6 @@ function handleLines(err, obj) {
 }
 
 function handleTransaction(obj) {
-	//console.log("Got transaction", obj);
-	//delete pendingRequests[this.message.id];
 	$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
 	if (obj.transaction.TransactionType == "Payment") {
 		animateTransaction(obj.transaction);
@@ -427,7 +414,6 @@ function handleTransaction(obj) {
 }
 
 function handleLedger(err, obj) {
-	//console.log("Got ledger", obj);
 	currentLedger = obj.ledger;
 	$("#ledgernumber").text(commas(parseInt(currentLedger.ledger_index)));
 	$("#totalripples").text(commas(parseInt(currentLedger.total_coins)/1000000));
@@ -456,17 +442,11 @@ function handleAccountData(err, obj) {
 			}
 		}
 	}
-
-	//console.log("Got account data", err, obj);
-
-
 }
 
 function handleAccountTransactions(err, obj) {
-	//console.log("Got account transactions", err, obj, this.message.id);
 	delete pendingRequests[this.message.id];
 	var n = nodes[nodeMap[obj.account]];
-	//console.log("GOT YOUR TRANSACTIONS!", obj.;
 	var noMoreTransactions = true;
 	if (n.transactions) { //XXXX Uncaught TypeError: Cannot read property 'transactions' of undefined 
 		//You don't want to add the same set of transactions more than once.
@@ -492,7 +472,6 @@ function handleAccountTransactions(err, obj) {
 }
 
 function handleIndividualTransaction(err, obj) {
-	//console.log("got info on transaction", obj);
 	delete pendingRequests[this.message.id];
 	txx = obj;
 	changeMode("transaction", txx);
@@ -615,12 +594,8 @@ function walkPaths(tx, clearing) {
 	if ("undefined" == typeof nodeMap[tx.Account]) {
 		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Account, Balance:0}, trustLines:[], balances:{} }); //
 		nodeMap[tx.Account] = nodes.length-1;
-		//console.log("NNNNNN", nodes, nodeMap);
 		degreeMap[tx.Account] = clearing ? 0 : 1;
-		//console.log("Added node");
 		anyNewNodes = true;
-	} else {
-		//console.log("We already added the source node.", tx.Account);
 	}
 	if (tx.Paths) {
 		for (var i=0; i<tx.Paths.length; i++) {
@@ -633,11 +608,7 @@ function walkPaths(tx, clearing) {
 						degreeMap[address] = 1;
 						console.log("Added node");
 						anyNewNodes = true;
-					} else {
-						//console.log("Path entry does not correspond to an account.");
 					}
-				} else {
-					//console.log("We already added that node.", address);
 				}
 			}
 		}
@@ -646,10 +617,7 @@ function walkPaths(tx, clearing) {
 		nodes.push({x:w*Math.random(), y:hh*Math.random(), account:{Account:tx.Destination, Balance:0}, trustLines:[], balances:{} });
 		nodeMap[tx.Destination] = nodes.length-1;
 		degreeMap[tx.Destination] = clearing ? 0 : 1;
-		//console.log("Added node");
 		anyNewNodes = true;
-	} else {
-		//console.log("We already added the destination node.", tx.Destination);
 	}
 	if (anyNewNodes) {
 		addNodes(1);
@@ -695,7 +663,6 @@ function eraseGraph() {
 
 // DATA-TO-HTML FUNCTIONS
 function renderTransaction(tx) {
-	//console.log('TX:', tx);
 	var transactionType;
 	var from = tx.Account;
 	var to = null;
@@ -769,11 +736,13 @@ function clickableAccountSpan(address) {
 function txDescription(result) {
 	console.log("TX INFO:",result);
   var xrpExpense;
-  for (var i=0; i<result.meta.AffectedNodes.length; i++) {
-    var an = result.meta.AffectedNodes[i];
-    if (an.ModifiedNode && an.ModifiedNode.LedgerEntryType==="AccountRoot" && an.ModifiedNode.FinalFields.Account===result.Account) {
-      xrpExpense = {before:an.ModifiedNode.PreviousFields.Balance/1000000 , after:an.ModifiedNode.FinalFields.Balance/1000000};
-      break;
+  if (result.meta) {
+    for (var i=0; i<result.meta.AffectedNodes.length; i++) {
+      var an = result.meta.AffectedNodes[i];
+      if (an.ModifiedNode && an.ModifiedNode.LedgerEntryType==="AccountRoot" && an.ModifiedNode.FinalFields.Account===result.Account) {
+        xrpExpense = {before:an.ModifiedNode.PreviousFields.Balance/1000000 , after:an.ModifiedNode.FinalFields.Balance/1000000};
+        break;
+      }
     }
   }
 	var output = (result.Amount?"<b>Amount:</b> <span class='amount'>"+
@@ -799,26 +768,16 @@ function txDescription(result) {
 			return output;
 		})()+
 		"</ul>"+"<b>Result:</b> "+(result.meta?(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span>":"N/A")+"<br/>"+
-		(xrpExpense ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP ("+(xrpExpense.after>=xrpExpense.before?"+":"&ndash;")+commas(Math.round(1000000*Math.abs(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
+		(xrpExpense||xrpExpense===0 ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP ("+(xrpExpense.after>=xrpExpense.before?"+":"&ndash;")+commas(Math.round(1000000*Math.abs(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
     (result.date ? "<b>Date:</b> "+absoluteDateOnly(result.date)+" "+absoluteTimeOnly(result.date)+"<br/>" : "")+
     (result.InvoiceID ? "<b>Invoice ID:</b> <tt>"+result.InvoiceID+"</tt><br/>" : "")+
-		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+result.inLedger+"<br/>"+
+		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+(result.inLedger||"N/A")+"<br/>"+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
 		"</tt><br/><b>Signature:</b><br/><div class='bigString' style='width:"+result.TxnSignature.length*4+"px;'>"+result.TxnSignature+"</div>";
 		
 	return output;
 }
 
-/* //deprecated arrow functions
-function calculateArrows(d) {
-	var rr = Math.ceil(5+nodeRadius(d.target));
-	return "url(\#arrow"+Math.min(59,rr)+")";
-}
-
-function updateAllArrows() {
-	//deprecated. do nothing.
-}
-*/
 
 function currentCurrencyBalance(accountNode) {
 	var output;
@@ -974,7 +933,6 @@ function zoomOut() {
 	if (zoomLevel >= 1) {
 		$("#zoomInButton").removeAttr("disabled");
 	}
-
 	translationX += (w/8 * zoomLevel);
 	translationY += (hh/8 * zoomLevel);
 	panOffset[0] -= (w/8 * zoomLevel);
@@ -984,7 +942,6 @@ function zoomOut() {
 }
 
 function zoomIn() {
-
 	zoomLevel /= 0.75;
 	if (zoomLevel >= 1) {
 		zoomLevel = 1;
@@ -1042,14 +999,12 @@ function defineFilter(name, red, green, blue) {
 }
 
 
-
 for (cur in HIGH_SATURATION_COLORS) {
 	var red = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(1)];
 	var green = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(2)];
 	var blue = HEX_TO_PERCENT[HIGH_SATURATION_COLORS[cur].charAt(3)];
 	defineFilter("shine"+cur, red, green, blue);
 }
-
 
 
 var haloGroup = svg.append("g").attr("id","haloGroup");
@@ -1199,7 +1154,6 @@ function colorNodes(nodeSelection, colorDegree) {
 		nodeSelection.style("stroke-width", 5);
 	}
 }
-//function(d){ if (numberOfUnseenTrustLines(d) > 0){return 5;} else{return 0.5;}}
 
 function reassignColors(address) {
 	var colorDegree = Math.min(degreeMap[address], 3);
@@ -1241,12 +1195,6 @@ function lineLength(lineElement) {
 
 function shine(onOrOff, address, cur) {
 	$("#_"+address).attr("filter",(onOrOff ? "url(#shine"+cur+")" : "none"));
-	/*
-	if (onOrOff) {
-		$("#_"+address).css("filter","drop-shadow(0 0 10px #ff0)");
-	} else {
-		//do nothing
-	}*/
 }
 
 
@@ -1261,12 +1209,6 @@ function animateLink(onOrOff, speed, from, to, cur, callback) {
 	} else {
 		var animator = $("#" + from + "_" + to + "_" + cur);
 		if (animator.length == 0) {
-			/*console.log(le_links[0]);
-			console.log(from);
-			console.log(to);
-			console.log(nodes[nodeMap[from]]);
-			console.log(nodes[nodeMap[to]]);*/
-			//console.log("ANIMATING LINK", from, to);
 			animatorLinks.push({source:nodes[nodeMap[from]], target:nodes[nodeMap[to]], value:100, currency:currency, strength:0});
 			var alink = svg.select("g#linkGroup").selectAll("line.animator").data(animatorLinks)
 				.enter().append("svg:line")
@@ -1279,7 +1221,6 @@ function animateLink(onOrOff, speed, from, to, cur, callback) {
 				.style("stroke",function(d){ return HIGH_SATURATION_COLORS[cur];} )
 				.style("z-index","2")
 				.style("stroke-dasharray","0,999999")
-				//.style("display","none")
 				.attr("stroke-width", 10);
 			animator = $("#" + from + "_" + to + "_" + cur);
 		}
@@ -1300,7 +1241,6 @@ function animateLink(onOrOff, speed, from, to, cur, callback) {
 				} else {
 					animator.css("display","none");
 				}
-				//console.log('done with link');
 				clearInterval(interval);
 				callback();
 			}
@@ -1341,16 +1281,13 @@ function animateTransaction(tx) {
 	if (tx.Paths) {
 		pathList = [];
 		for (var i=0; i<tx.Paths.length; i++) {
-			//console.log(i);
 			var thisOldPath = tx.Paths[i];
-			//console.log("OLD PATH:", thisOldPath);
 			var thisPath = [];
 			for (var j=0; j<thisOldPath.length; j++) {
 				if (thisOldPath[j].account) {
 					thisPath.push(thisOldPath[j]);
 				}
 			}
-			//console.log("NEW PATH:", thisPath);
 			pathList.push(thisPath);
 		}
 		for (var i=0; i<pathList.length; i++) {
@@ -1374,18 +1311,6 @@ function animateTransaction(tx) {
 					animateLink(onOrOff, speed, lastNode, tx.Destination, finalCur, function(){shine(onOrOff, tx.Destination, finalCur); if(onOrOff) {shine(false, tx.Account); animatePath(false, i);} });
 				} else {
 					nextNode = path[j].account;
-					/*
-					if (!nextNode) {
-						j++;
-						console.log(j, path);
-						nextNode = path[j].account;
-					}
-					if (!nextNode) {
-						j++;
-						console.log(j, path);
-						nextNode = path[j].account;
-					}
-					console.log("NEXT:", i, j, nextNode);*/
 					if (path[j].currency) {
 						cur = path[j].currency;
 						if(!HIGH_SATURATION_COLORS.hasOwnProperty(cur)) {cur = "___";}
@@ -1400,9 +1325,6 @@ function animateTransaction(tx) {
 			animatePathLink(0);
 		}
 	}
-
-	
-	
 }
 
 
@@ -1757,13 +1679,9 @@ function updateTransactions(address, appending) {
 						var LatestFields = mn.FinalFields || mn.NewFields;
 						if (mn && LatestFields) {
 							if (LatestFields.Account == address || (LatestFields.HighLimit && LatestFields.HighLimit.issuer == address) ) {
-								//console.log("LATEST FIELDS:", LatestFields);
 								var let = mn.LedgerEntryType;
-																
 								if (let == "AccountRoot") {
-									//console.log("Affected AccountRoot:", mn);
 									var diff = LatestFields.Balance - (mn.PreviousFields ? mn.PreviousFields.Balance : 0);
-									//console.log("Got/gave XRP:", diff);
 									if (affectedBalances["XRP"]) {
 										affectedBalances["XRP"]+=diff;
 									} else {
@@ -1844,9 +1762,6 @@ function updateTransactions(address, appending) {
 			var success = meta.TransactionResult == "tesSUCCESS" ? "" : "failed";
 			var result =  meta.TransactionResult == "tesSUCCESS" ? "" : "["+meta.TransactionResult+"] ";
 
-			
-			//console.log("success?", success,  meta.TransactionResult);
-			//	animateTransaction(transactionMap[hash]);
 			$('#transactionTable').append(
 				'<tr hash="'+tx.hash+'">'+
 					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+result+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
@@ -1862,7 +1777,6 @@ function updateTransactions(address, appending) {
 				'</tr>');
 
 		}
-		
 		
 		if (!nodes[nodeMap[address]].transactionsFinished) { //Are there more?
 			$('#transactionTable').append('<tr id="transactionThrobber"><td colspan=3 style="text-align:center; padding:10px"><img src="throbber4.gif" width=30 height=30 /></td></tr>');
@@ -1885,7 +1799,6 @@ function animateInPlaceWithHash(hash) {
 	var tx = transactionMap[hash];
 	//walk the paths to see if any nodes need to be added.
 	walkPaths(tx);
-	//console.log("animating in place:", tx);
 	animateTransaction(tx);
 }
 
@@ -1894,7 +1807,7 @@ function animateInPlaceWithHash(hash) {
 
 
 function agoDate(secondsSince2000) {
-	var currentTime = new Date().getTime() / 1000 - 946684800;
+	var currentTime = new Date().getTime() / 1000 - UNIX_RIPPLE_TIME;
 	var secondsAgo = currentTime-parseInt(secondsSince2000);
 	var number;
 	var unit;
@@ -1931,32 +1844,32 @@ function agoDate(secondsSince2000) {
 	}
 	
 	var d = new Date(0);
-	d.setUTCSeconds(secondsSince2000+946684800);
+	d.setUTCSeconds(secondsSince2000+UNIX_RIPPLE_TIME);
 	return '<span style="margin-right:5px" class="light small mediumgray date" title="'+d.toUTCString()+'">'+number+" "+unit+' ago</span>';
 }
 
 function absoluteDateOnly(secondsSince2000) {
 	var d = new Date(0);
-	d.setUTCSeconds(secondsSince2000+946684800);
-	return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()
+	d.setUTCSeconds(secondsSince2000+UNIX_RIPPLE_TIME);
+	return d.getUTCDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]+' '+d.getUTCFullYear()
 }
 
 function absoluteTimeOnly(secondsSince2000) {
 	var d = new Date(0);
-	d.setUTCSeconds(secondsSince2000+946684800);
-	return d.getHours()+':'+(d.getMinutes()<10 ? '0'+d.getMinutes() : d.getMinutes())+':'+(d.getSeconds()<10 ? '0'+d.getSeconds() : d.getSeconds());
+	d.setUTCSeconds(secondsSince2000+UNIX_RIPPLE_TIME);
+	return d.getUTCHours()+':'+(d.getUTCMinutes()<10 ? '0'+d.getUTCMinutes() : d.getUTCMinutes())+':'+(d.getUTCSeconds()<10 ? '0'+d.getUTCSeconds() : d.getUTCSeconds());
 }
 
 
 
 function absoluteDate(secondsSince2000) {
 	var d = new Date(0);
-	d.setUTCSeconds(secondsSince2000+946684800);
+	d.setUTCSeconds(secondsSince2000+UNIX_RIPPLE_TIME);
 	return '<span class="light small mediumgray date" title="'+absoluteTimeOnly(secondsSince2000)+'">'+absoluteDateOnly(secondsSince2000)+'</span>';
 }
 function absoluteTime(secondsSince2000) {
 	var d = new Date(0);
-	d.setUTCSeconds(secondsSince2000+946684800);
+	d.setUTCSeconds(secondsSince2000+UNIX_RIPPLE_TIME);
 	return '<span class="light small mediumgray date" title="'+absoluteDateOnly(secondsSince2000)+'">'+absoluteTimeOnly(secondsSince2000)+'</span>';
 }
 
@@ -1981,7 +1894,7 @@ function getBalances(address) {
 function linkOrNot(d) {
 	if(currentCurrency=="XRP" || currentCurrency==d.currency) {
 		var o = 5*Math.pow(Math.log(1+d.value),0.3333);;
-		return o;//2;//FUN STUFF o;
+		return o;
 	} 
 	else{return 0;}
 }
@@ -2054,17 +1967,12 @@ window.onhashchange = function(){
 		} else if (window.location.hash.charAt(1) == "r") {
 			if (nodeMap[window.location.hash.substring(1)]) {
 				expandNode(window.location.hash.substring(1));
-			} else {
-				//the user edited the hash to something invalid, so don't do anything.
 			}
 		} else if ("0123456789ABCDEF".indexOf(window.location.hash.charAt(1)) != -1) {
 			showTransactionWithHash(window.location.hash.substring(1));
-		} else {
-			//do nothing
 		}
     
 	} else {
-		//console.log("REDUNDANT!");
 	}
 	changingFocus = false;
 };
