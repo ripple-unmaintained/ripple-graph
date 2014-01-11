@@ -28,7 +28,7 @@
 
 
 <!-- BEGIN VISUALIZATION DIV -->
-<div id="visualization" style="position:relative; margin-left: auto; margin-right: auto;" class="fullwidth">
+<div id="visualization" style="position:relative; border: 1px solid #c8c8c8; height:703px; pointer-events:none" class="fullwidth">
 <div class="light midsize mediumgray" style="width: 100%;
     height: 100%;
     position: absolute;
@@ -37,9 +37,9 @@
 ledger number: <span id="ledgernumber"></span><br/>
 total ripples: <span id="totalripples"></span><br/></div>
 <!-- top bar -->
-<input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px;" type="text"/>
-<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px;" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val().replace(/\s+/g, ''),true);"/>
-<div class="topbar" style="left:684px; height:42px; width:230px; outline:none;">
+<input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px; pointer-events:auto; z-index:1" type="text"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px; pointer-events:auto; z-index:1" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val().replace(/\s+/g, ''),true);"/>
+<div class="topbar" style="right:35px; height:42px; width:230px; outline:none; pointer-events:auto; z-index:0">
 	<select id="currency" onchange="changeCurrency(this.value);">
 		<option value="XRP">All Currencies</option>
 		<option value="USD">USD - U.S. Dollars</option>
@@ -53,8 +53,8 @@ total ripples: <span id="totalripples"></span><br/></div>
 </div>
 
 <div style="position:absolute; left:35px; top:80px; opacity:.8;">
-<input style="width:25px; height:25px; font-size:12pt;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
-<input style="width:25px; height:25px; font-size:12pt;" type="button" value="&ndash;" onclick="zoomOut();"/>
+<input style="width:25px; height:25px; font-size:12pt; pointer-events:auto;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
+<input style="width:25px; height:25px; font-size:12pt; pointer-events:auto;" type="button" value="&ndash;" onclick="zoomOut();"/>
 </div>
 
 <div id="loading" class="light large" style="color:#aaa; position:absolute; left:390px; top:100px; line-height:50px;">
@@ -64,10 +64,10 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 
 <!-- begin information below -->
-<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:704px; left:1.3px; width:934px; height:401px; border-top: 1px solid #c8c8c8;">
+<div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:704px; width:100%; border: 1px solid #c8c8c8; margin-left:-1px; pointer-events:auto;">
 
 <div class="tab midsize mediumgray unselectedTab" style="margin-top:-36px; margin-left:140px;" onclick="changeMode('feed');" id="feedTab">Network feed</div>
-<div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1.25px;" onclick="changeMode('individual',senderAddress);">Wallet info</div>
+<div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1px;" onclick="changeMode('individual',senderAddress);">Wallet info</div>
 
 
 <div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; margin-top:13px; padding-left:20px; float:left;">&nbsp;</div>
@@ -78,33 +78,33 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 	
 <div class="fullwidth topbordered horizontalrule"></div>
-<div class="light midsize mediumgray" id="leftHeading" style="border: none; float:left; padding-left:20px;">Balances</div>
-<div class="light midsize mediumgray" id="rightHeading" style="width:44%; border:none; float:right;">History</div>
+<div class="light midsize mediumgray" id="leftHeading" style="width:50%; border: none; float:left; padding-left:20px;">Balances</div>
+<div class="light midsize mediumgray" id="rightHeading" style="border:none; float:left;">History</div>
 <div class="clearboth"></div>
 <div class="fullwidth bottombordered horizontalrule"></div>
 
 
-
 <!-- the table on the left -->
-<div class="bottomlist rightbordered" style="width:490px; float:left;">
-
-<div class="scroll-pane" id="transactionInformationContainer" style="z-index:1; width:935px; height:288px; position:absolute; background-color:#fff; display:none;">
-	<div style="width:935px; overflow-x:hidden;">
-		<div id="transactionInformation" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;"></div>
-		<div id="transactionFeed" class="light midsize mediumgray" style="width:925px; padding:20px; display:none;">
-			<table id="transactionFeedTable"></table>	
-		</div>
-	</div>
+<div class="bottomlist rightbordered" style="width:49%; float:left;">
+  <div class="scroll-pane" id="transactionInformationContainer" style="z-index:1; width:100%; height:288px; position:absolute; background-color:#fff; display:none;">
+    <div style="width:100%; overflow-x:hidden;">
+      <div id="transactionInformation" class="light midsize mediumgray" style="width:90%; padding:20px; display:none;"></div>
+      <div id="transactionFeed" class="light midsize mediumgray" style="width:190%; padding:20px; display:none;">
+        <table id="transactionFeedTable"></table>	
+      </div>
+    </div>
+  </div>
+  <div class="scroll-pane" style="height:288px; margin-left:10px;">
+    <table style="width:100%; margin-top:4px;" class="outertable" id="balanceTable"></table>
+  </div>
 </div>
-<div class="scroll-pane" style="height:288px; margin-left:10px;">
-	<table style="width:465px; margin-top:4px;" class="outertable" id="balanceTable"></table>
-</div></div>
-
 
 <!-- the table on the right -->
-<div class="bottomlist" style="width:435px; margin-left:500px;">
-<div class="scroll-pane" style="height:288px;width:400px; ">
-<table class="outertable" id="transactionTable"></table></div></div>
+<div class="bottomlist" style="width:50%; float:right;">
+  <div class="scroll-pane" style="height:288px;width:100%; ">
+    <table class="outertable" id="transactionTable"></table>
+  </div>
+</div>
 
 <div class="clearboth"></div>
 
@@ -906,7 +906,7 @@ function addConnections(origin, trustLines) {
 
 var svg = d3.select("#visualization")
 	.append("svg:svg")
-	.attr("width", w)
+	.attr("width", "100%")
 	.attr("height", h).attr("pointer-events", "all")
 	.style("background-color", "#fff").on("click",function(){
 		if($('.sbOptions').css("display") == "block") {
@@ -916,7 +916,7 @@ var svg = d3.select("#visualization")
 			$('#otherCurrency').trigger('blur');
 		}
 	})
-	.style("float","left").style("border", "1px solid #c8c8c8")
+	.style("float","left")//.style({"border-left":"1px solid #c8c8c8", "border-right":"1px solid #c8c8c8", "border-top":"1px solid #c8c8c8"})
 	.style("margin-right","10").call(d3.behavior.drag().on("drag", redraw));
 
 var zoomLevel = 1;
@@ -1025,7 +1025,7 @@ function nodeRadius(accountNode) {
 }
 
 var force = d3.layout.force()
-	.size([w, 710])
+	.size([(window.innerWidth > 0) ? window.innerWidth : screen.width, 710]) //w
 	.linkDistance(80)
 	.linkStrength(function(d) {
 		if (currentCurrency == "XRP" || currentCurrency == d.currency) {
@@ -1765,8 +1765,8 @@ function updateTransactions(address, appending) {
 
 			$('#transactionTable').append(
 				'<tr hash="'+tx.hash+'">'+
-					'<td style="width:46px"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+result+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
-					'<td style="width:374px"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
+					'<td style="width:10%;"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+result+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
+					'<td style="width:80%"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
 					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span '+(secondAissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+secondAissuer+'"':'')+'><span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span></span>':'')):'')+
 					agoDate(tx.date)+'</span>'+
 					(counterparty!=""?'<span style="display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis;" class="light address right"><span style="cursor:pointer;" '+

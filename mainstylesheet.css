@@ -65,7 +65,7 @@ body { background-color: #fff; }
 .center { text-align:center; }
 .right { text-align:right; }
 .horizontalrule { height:10px; }
-.fullwidth { width: 935px; }
+.fullwidth { width: 100%; }
 .clearboth { clear:both; }
 .topbar {
 	opacity:0.8;
@@ -101,7 +101,7 @@ body { background-color: #fff; }
 
 /* Tables and cells */
 table { border-collapse: collapse; }
-table.outertable { table-layout: fixed; }
+table.outertable { table-layout: fixed; width: 100%}
 table.outertable td {
 	padding-top: 18px;
 	padding-bottom: 14px;
@@ -130,7 +130,7 @@ table.innertable tr { height:25px; }
 	padding-top:11px;
 	padding-bottom: 7px; }
 .marginalcell {
-	width:15px;
+	width:10%;
 	border:none !important;}
 .expander {
 	text-align: right;
