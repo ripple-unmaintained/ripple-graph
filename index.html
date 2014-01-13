@@ -29,28 +29,26 @@
 
 <!-- BEGIN VISUALIZATION DIV -->
 <div id="visualization" style="position:relative; border: 1px solid #c8c8c8; height:703px; pointer-events:none" class="fullwidth">
-<div class="light midsize mediumgray" style="width: 100%;
-    height: 100%;
-    position: absolute;
-    top: -72px;
-	left:35px;">
+<div class="light midsize mediumgray" style="position: absolute; top: -72px;	left:35px; pointer-events:auto">
 ledger number: <span id="ledgernumber"></span><br/>
 total ripples: <span id="totalripples"></span><br/></div>
 <!-- top bar -->
-<input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px; pointer-events:auto; z-index:1" type="text"/>
-<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px; pointer-events:auto; z-index:1" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val().replace(/\s+/g, ''),true);"/>
-<div class="topbar" style="right:35px; height:42px; width:230px; outline:none; pointer-events:auto; z-index:0">
+<input id="focus" class="light midsize rounded topbar" style="left:35px; padding:0 10px; width:295px; height:42px; z-index:1" type="text"/>
+<input id="searchButton" class="topbar" style="left:360px; width:50px; height:50px; z-index:1" type="button" value="Go" onClick="changeMode('individual'); refocus($('#focus').val().replace(/\s+/g, ''),true);"/>
+<div class="topbar" style="right:35px; height:42px; width:230px; outline:none;">
 	<select id="currency" onchange="changeCurrency(this.value);">
-		<option value="XRP">All Currencies</option>
-		<option value="USD">USD - U.S. Dollars</option>
-		<option value="EUR">EUR - Euro</option>
-		<option value="JPY">JPY - Japanese Yen</option>
-		<option value="CNY">CNY - Chinese Yuan</option>
-		<option value="BTC">BTC - Bitcoins</option>
-		<option value="___">Other</option>
+    <option value="XRP">All Currencies</option>
+    <option value="USD">USD - U.S. Dollars</option>
+    <option value="EUR">EUR - Euro</option>
+    <option value="CNY">CNY - Chinese Yuan</option>
+    <option value="JPY">JPY - Japanese Yen</option>
+    <option value="BTC">BTC - Bitcoins</option>
+    <option value="___">Other</option>
 	</select>
 	<input type="text" id="otherCurrency" value="other" class=" sbSelector sbHolder" onfocus="focusOtherCurrency(this);" onblur="blurOtherCurrency(this);" />
 </div>
+
+
 
 <div style="position:absolute; left:35px; top:80px; opacity:.8;">
 <input style="width:25px; height:25px; font-size:12pt; pointer-events:auto;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
@@ -88,8 +86,8 @@ total ripples: <span id="totalripples"></span><br/></div>
 <div class="bottomlist rightbordered" style="width:49%; float:left;">
   <div class="scroll-pane" id="transactionInformationContainer" style="z-index:1; width:100%; height:288px; position:absolute; background-color:#fff; display:none;">
     <div style="width:100%; overflow-x:hidden;">
-      <div id="transactionInformation" class="light midsize mediumgray" style="width:90%; padding:20px; display:none;"></div>
-      <div id="transactionFeed" class="light midsize mediumgray" style="width:190%; padding:20px; display:none;">
+      <div id="transactionInformation" class="light midsize mediumgray" style="width:100%%; padding:20px; display:none;"></div>
+      <div id="transactionFeed" class="light midsize mediumgray" style="width:100%; padding:20px; display:none;">
         <table id="transactionFeedTable"></table>	
       </div>
     </div>
@@ -137,68 +135,69 @@ var HALO_MARGIN = 6;
 var COLOR_TABLE = {
 //currency  |  center  |   rim  |
 	"__Z": [["#dfe0e1","#999999"], //degree 0
-/*GRAY*/	["#ebecec","#aaa9a9"], //degree 1
-			["#ededee","#bcbbbb"], //etc.
-			["#f3f4f4","#d0cece"],
-			["#fdfdfe","#e5e4e3"]],
+/*GRAY*/  ["#ebecec","#aaa9a9"], //degree 1
+          ["#ededee","#bcbbbb"], //etc.
+          ["#f3f4f4","#d0cece"],
+          ["#fdfdfe","#e5e4e3"]],
 			
 	"__N": [["#f05656","#ee2d2c"],
-/*RED*/		["#f37a6f","#f16249"],
-			["#f6998b","#f5886d"],
-			["#fab9ac","#f9ad95"],
-			["#fddad1","#fcd4c4"]],
+/*RED*/	  ["#f37a6f","#f16249"],
+          ["#f6998b","#f5886d"],
+          ["#fab9ac","#f9ad95"],
+          ["#fddad1","#fcd4c4"]],
 			
 	"BTC": [["#e19e41","#b76f2f"],
-/*ORANGE*/	["#e5af65","#c38a57"],
-			["#e9c189","#d0a57e"],
-			["#edd2ad","#dcbfa6"],
-			["#f1e4d1","#e9dacd"]],
+/*ORANGE*/["#e5af65","#c38a57"],
+          ["#e9c189","#d0a57e"],
+          ["#edd2ad","#dcbfa6"],
+          ["#f1e4d1","#e9dacd"]],
 			
-	"JPY": [["#fcf5a1","#fedb3d"],
-/*YELLOW*/	["#fdf7b4","#ffe069"],
-			["#fdf7c4","#ffe68d"],
-			["#fefad8","#ffed83"],
-			["#fffcea","#fff5d6"]],
+	"CNY": [["#fcf5a1","#fedb3d"],
+/*YELLOW*/["#fdf7b4","#ffe069"],
+          ["#fdf7c4","#ffe68d"],
+          ["#fefad8","#ffed83"],
+          ["#fffcea","#fff5d6"]],
 			
 	"USD": [["#99cc66","#669940"],
-/*LIME*/	["#acd585","#82a85d"],
-			["#c0dea1","#9eb880"],
-			["#d4e8be","#bbcba4"],
-			["#e8f2dd","#dae1cd"]],
+/*LIME*/  ["#acd585","#82a85d"],
+          ["#c0dea1","#9eb880"],
+          ["#d4e8be","#bbcba4"],
+          ["#e8f2dd","#dae1cd"]],
 			
 	"AUD": [["#8dc198","#609869"],
-/*GREEN*/	["#a2cbab","#7eab85"],
-			["#b7d6bd","#9cbda1"],
-			["#cbe0d0","#b9d0bd"],
-			["#e0ebe2","#d7e2d9"]],
+/*GREEN*/ ["#a2cbab","#7eab85"],
+          ["#b7d6bd","#9cbda1"],
+          ["#cbe0d0","#b9d0bd"],
+          ["#e0ebe2","#d7e2d9"]],
 			
 	"XRP": [["#55a7cc","#346aa9"],
-/*BLUE*/	["#83b8d6","#5083b9"],
-			["#a7cae1","#7ba1cb"],
-			["#d0e1ed","#a3c2dd"],
-			["#f2f6fa","#cee8f1"]],
+/*BLUE*/  ["#83b8d6","#5083b9"],
+          ["#a7cae1","#7ba1cb"],
+          ["#d0e1ed","#a3c2dd"],
+          ["#f2f6fa","#cee8f1"]],
 			
 	"___": [["#6566ae","#363795"], //I.e., any other currency.
-/*INDIGO*/	["#7e7cbb","#5855a5"],
-			["#9896c9","#7a74b6"],
-			["#b6b4da","#9e99cb"],
-			["#d7d6eb","#c9c6e3"]],
+/*INDIGO*/["#7e7cbb","#5855a5"],
+          ["#9896c9","#7a74b6"],
+          ["#b6b4da","#9e99cb"],
+          ["#d7d6eb","#c9c6e3"]],
 			
 	"CAD": [["#8e68ad","#673695"],
-/*VIOLET*/	["#9f80ba","#7d58a5"],
-			["#8e68ad","#673695"],
-			["#c8b8da","#b29ecc"],
-			["#e0d8eb","#d4cae4"]],
+/*VIOLET*/["#9f80ba","#7d58a5"],
+          ["#8e68ad","#673695"],
+          ["#c8b8da","#b29ecc"],
+          ["#e0d8eb","#d4cae4"]],
 			
 	"EUR": [["#b76e99","#863d66"],
-/*PINK*/	["#c389ab","#9c6283"],
-			["#d0a4be","#b2879f"],
-			["#dcbfd0","#c9abbc"],
-			["#d9dae3","#dfd0d8"]]};
+/*PINK*/  ["#c389ab","#9c6283"],
+          ["#d0a4be","#b2879f"],
+          ["#dcbfd0","#c9abbc"],
+          ["#d9dae3","#dfd0d8"]]};
+          
 var HIGH_SATURATION_COLORS = {
 	"__N": "#f00", //RED	
 	"BTC": "#fa0", //ORANGE
-	"JPY": "#af0", //YELLOW
+	"CNY": "#af0", //YELLOW
 	"USD": "#0f0", //LIME
 	"AUD": "#0fa", //GREEN
 	"XRP": "#0af", //BLUE
@@ -232,6 +231,20 @@ if (param == "") {
 	focalNode = REFERENCE_NODE;
 } else {
 	focalNode = REFERENCE_NODE;
+}
+
+
+function gotoThing() {
+  var string = $('#focus').val().replace(/\s+/g, '');
+  if (string.length === 64) {
+    console.log("HELLO!");
+    eraseGraph();
+    window.location.hash = string;
+    remote.request_tx(string, handleIndividualTransaction);
+  } else {
+    changeMode('individual');
+    refocus(string,true);
+  }
 }
 
 
@@ -290,6 +303,7 @@ remote.connect(function() {
 			nodeMap = {};
 			degreeMap = {};
 			nodes = [];
+      $('#focus').val(transaction_id);
 			remote.request_tx(transaction_id, handleIndividualTransaction);
 		} else {
 			lastFocalNode = REFERENCE_NODE;
@@ -767,12 +781,14 @@ function txDescription(result) {
 			}
 			return output;
 		})()+
-		"</ul>"+"<b>Result:</b> "+(result.meta?(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span>":"N/A")+"<br/>"+
+		"</ul>"+
+    (result.meta ? "<b>Result:</b> "+(result.meta.TransactionResult=="tesSUCCESS"?"<span>":"<span style='color:#900;'>")+result.meta.TransactionResult+"</span><br/>" : "")+
 		(xrpExpense||xrpExpense===0 ? "<b>XRP change:</b> "+commas(xrpExpense.before) + " XRP &rarr; "+commas(xrpExpense.after)+" XRP ("+(xrpExpense.after>=xrpExpense.before?"+":"&ndash;")+commas(Math.round(1000000*Math.abs(xrpExpense.before-xrpExpense.after))/1000000)+" XRP)<br/>" : "")+
     (result.date ? "<b>Date:</b> "+absoluteDateOnly(result.date)+" "+absoluteTimeOnly(result.date)+"<br/>" : "")+
     (result.InvoiceID ? "<b>Invoice ID:</b> <tt>"+result.InvoiceID+"</tt><br/>" : "")+
     (result.DestinationTag ? "<b>Destination tag:</b> "+result.DestinationTag+"<br/>" : "")+
-		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/><b>Ledger:</b> "+(result.inLedger||"N/A")+"<br/>"+
+		"<b>Hash:</b> <tt>"+result.hash+"</tt><br/>"+
+    (result.inLedger ? "<b>Ledger:</b> "+result.inLedger+"<br/>" : "")+
 		"<b>Signing key:</b> <tt>"+result.SigningPubKey+
 		"</tt><br/><b>Signature:</b><br/><div class='bigString' style='width:"+result.TxnSignature.length*4+"px;'>"+result.TxnSignature+"</div>";
 		
@@ -1766,7 +1782,7 @@ function updateTransactions(address, appending) {
 			$('#transactionTable').append(
 				'<tr hash="'+tx.hash+'">'+
 					'<td style="width:10%;"><div '+(transactionType=='send'||transactionType=='receive'||transactionType=='intermediate'?'oncontextmenu="animateInPlaceWithHash(\''+tx.hash+'\');return false;" onclick="showTransactionWithHash(\''+tx.hash+'\');"':'style="cursor:default;"')+' class="'+transactionType+success+' icon" title="'+result+txAltText[transactionType+success]+'">&nbsp;</div></td>'+
-					'<td style="width:80%"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
+					'<td style="width:90%"'+(counterparty==""?' colspan="1"':'')+'><span style="float:left"><span '+(aissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+aissuer+'"':'')+'>'+(amount?('<span class="bold amount small" >'+commas(amount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+currency+'</span></span>'+
 					(secondAmount?' <i class="light small darkgray" style="margin-right:5px">for</i> <span '+(secondAissuer&&!(transactionType=='trustin'||transactionType=='trustout')?'title="'+secondAissuer+'"':'')+'><span class="bold amount small">'+commas(secondAmount)+'</span> <span class="light small darkgray" style="margin-right:5px">'+secondCurrency+'</span></span>':'')):'')+
 					agoDate(tx.date)+'</span>'+
 					(counterparty!=""?'<span style="display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis;" class="light address right"><span style="cursor:pointer;" '+
@@ -1774,7 +1790,7 @@ function updateTransactions(address, appending) {
 							'onmouseout="darkenAddress(\''+counterparty+'\');"'+
 							'onclick="expandNode(\''+counterparty+'\');">'+//"HASH:"+tx.hash+
 							counterparty+'</span></span></td>' : '')+
-					'<td class="marginalcell"/>'+
+					//'<td class="marginalcell"/>'+
 				'</tr>');
 
 		}

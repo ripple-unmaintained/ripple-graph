@@ -71,6 +71,7 @@ body { background-color: #fff; }
 	opacity:0.8;
 	position:absolute; 
 	top:23px; 
+  pointer-events:auto;
 	color:#333;}
 .bottomlist { height:293px; }
 #otherCurrency {
