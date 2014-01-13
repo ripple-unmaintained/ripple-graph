@@ -4,28 +4,21 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 	<link href='fonts/opensans.css' rel='stylesheet' type='text/css'>
 	<link href="mainstylesheet.css" type="text/css" rel="stylesheet" />
-
 	<script type="text/javascript" src="jquery.js"></script>
 	<script type="text/javascript" src="d3.v3.min.js"></script>
 	<script type="text/javascript" src="sha1.js"></script>
 	<script type="text/javascript" src="ripple-0.7.201-debug.js"></script>
-	
-	
 	<script type="text/javascript" src="selectbox/jquery.selectbox-0.2.min.js"></script>
 	<link href="selectbox/jquery.selectbox.css" type="text/css" rel="stylesheet" />
-
 	<script type="text/javascript" src="jscrollpane/jquery.mousewheel.js"></script>
 	<script type="text/javascript" src="jscrollpane/jquery.jscrollpane.js"></script>
 	<script src="jquery.inview.js"></script>
-	
 	<link type="text/css" href="jscrollpane/jquery.jscrollpane.css" rel="stylesheet" media="all" />
-
 	<title>Ripple Live Network</title>
 </head>
 
 <body>
 <div class="light heading darkgray">Ripple Live Network</div>
-
 
 <!-- BEGIN VISUALIZATION DIV -->
 <div id="visualization" style="position:relative; border: 1px solid #c8c8c8; height:703px; pointer-events:none" class="fullwidth">
@@ -49,7 +42,6 @@ total ripples: <span id="totalripples"></span><br/></div>
 </div>
 
 
-
 <div style="position:absolute; left:35px; top:80px; opacity:.8;">
 <input style="width:25px; height:25px; font-size:12pt; pointer-events:auto;" type="button" id="zoomInButton" value="+" onclick="zoomIn();" disabled="disabled"/><br/>
 <input style="width:25px; height:25px; font-size:12pt; pointer-events:auto;" type="button" value="&ndash;" onclick="zoomOut();"/>
@@ -63,24 +55,16 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 <!-- begin information below -->
 <div id="information" style="opacity:0.8; background-color:#fff; position:absolute; top:704px; width:100%; border: 1px solid #c8c8c8; margin-left:-1px; pointer-events:auto;">
-
 <div class="tab midsize mediumgray unselectedTab" style="margin-top:-36px; margin-left:140px;" onclick="changeMode('feed');" id="feedTab">Network feed</div>
 <div id="individualTab" class="tab midsize mediumgray selectedTab" style="margin-top:-35px; margin-left:-1px;" onclick="changeMode('individual',senderAddress);">Wallet info</div>
-
-
 <div id="focalAddress" class="light mediumgray large" style="margin-bottom:13px; margin-top:13px; padding-left:20px; float:left;">&nbsp;</div>
-
-
 <div class="clearboth"></div>
 
-
-	
 <div class="fullwidth topbordered horizontalrule"></div>
 <div class="light midsize mediumgray" id="leftHeading" style="width:50%; border: none; float:left; padding-left:20px;">Balances</div>
 <div class="light midsize mediumgray" id="rightHeading" style="border:none; float:left;">History</div>
 <div class="clearboth"></div>
 <div class="fullwidth bottombordered horizontalrule"></div>
-
 
 <!-- the table on the left -->
 <div class="bottomlist rightbordered" style="width:49%; float:left;">
@@ -115,21 +99,10 @@ total ripples: <span id="totalripples"></span><br/></div>
 
 <!-- Javascript for the visualization, using the D3 library -->
 <script type="text/javascript">
-
-/*
-// WEBSOCKET OPTIONS
-var Options = {
-	server: {
-		"websocket_ip" : "s1.ripple.com",
-		"websocket_port" : 443,
-		"websocket_ssl" : true
-	}
-};
-*/
-
 // CONSTANTS
 var UNIX_RIPPLE_TIME = 946684800;
 var RECURSION_DEPTH = 1;
+var MAX_NUTL = 360;
 var REFERENCE_NODE = 'r3kmLJN5D28dHuH8vZNUZpMC43pEHpaocV';
 var HALO_MARGIN = 6;
 var COLOR_TABLE = {
@@ -284,7 +257,6 @@ var remote = new Remote({
 });
 
 
-
 //Opening sequence:
 remote.connect(function() {
 	//Subscriptions
@@ -416,7 +388,16 @@ function handleLines(err, obj) {
 	if (err && err.remote && (err.remote.error === "actNotFound" || err.remote.error === "actMalformed") ) {
 		$("#loading").text("Account not found!").css("color","#a00");
 	} else {
-		addConnections(obj.account, obj.lines);
+  	/*if () {
+			//serverGetLines(address);
+      addConnections(obj.account, obj.lines);
+		}*/
+    
+    //var shouldExpand = (mode=="transaction") || obj.lines.length<MAX_NUTL || confirm('This node has '+obj.lines.length+' unseen trust lines. Expanding it may slow down your browser. Are you sure?');
+    //addConnections(obj.account, obj.lines, !shouldExpand);
+    addConnections(obj.account, obj.lines);
+    //if (
+		//addConnections(obj.account, obj.lines);
 	}
 }
 
@@ -830,7 +811,7 @@ function addConnections(origin, trustLines) {
 			.attr("r", HALO_MARGIN+nodeRadius(nodes[nodeMap[origin]]) );
 	}
 
-	if (degreeMap[origin] < RECURSION_DEPTH || ( degreeMap[origin] == RECURSION_DEPTH) && transactionMode ) {
+	if ((degreeMap[origin] < RECURSION_DEPTH || ( degreeMap[origin] == RECURSION_DEPTH) && transactionMode) && (transactionMode || trustLines.length<MAX_NUTL || confirm('This node has '+trustLines.length+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) ) {
 		if (!transactionMode) {
 			expandedNodes[origin] = true;
 		} else {
@@ -1079,7 +1060,7 @@ function expandNode(address) {
 		reassignColors(address);
 		colorRogueNodes();
 		if (expandedNodes[address]) {} else {
-			if(nutl<360 || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) {
+			if (nutl<MAX_NUTL || confirm('This node has '+nutl+' unseen trust lines. Expanding it may slow down your browser. Are you sure?')) {
 				serverGetLines(address);
 			} 
 		}
@@ -1810,17 +1791,12 @@ function updateTransactions(address, appending) {
 }
 
 
-
-			
 function animateInPlaceWithHash(hash) {
 	var tx = transactionMap[hash];
 	//walk the paths to see if any nodes need to be added.
 	walkPaths(tx);
 	animateTransaction(tx);
 }
-
-
-
 
 
 function agoDate(secondsSince2000) {
@@ -1996,12 +1972,8 @@ window.onhashchange = function(){
 
 </script>
 
-
 <!-- Initialization functions -->
 <script>
-
-
-
 	$(function () {$('.scroll-pane').jScrollPane({autoReinitialise: true, hideFocus: true});});
 	$(function () {$("#currency").selectbox();});
 	$("#focus").keyup(function(event){
@@ -2015,7 +1987,6 @@ window.onhashchange = function(){
 		}
 	});
 	updateInformation(focalNode);
-	
 </script>
 
 
