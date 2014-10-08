@@ -402,9 +402,11 @@ function handleLines(err, obj) {
 }
 
 function handleTransaction(obj) {
-	$("#transactionFeedTable").prepend(renderTransaction(obj.transaction));
+    var tx  = obj.transaction;
+    tx.meta = obj.meta;
+	$("#transactionFeedTable").prepend(renderTransaction(tx));
 	if (obj.transaction.TransactionType == "Payment") {
-		animateTransaction(obj.transaction);
+		animateTransaction(tx);
 	}
 }
 
@@ -666,7 +668,7 @@ function renderTransaction(tx) {
 	var secondAmount = null;
 	var secondCurrency = null;
 	if (tx.TransactionType == "Payment") {
-		amount = tx.Amount;
+		amount = tx.meta.DeliveredAmount || tx.Amount;
 		transactionType = "send";
 		to = tx.Destination;
 	} else if (tx.TransactionType == "TrustSet") {
@@ -740,9 +742,10 @@ function txDescription(result) {
       }
     }
   }
-	var output = (result.Amount?"<b>Amount:</b> <span class='amount'>"+
-		(result.Amount.currency ? commas(result.Amount.value)+" "+result.Amount.currency : commas(result.Amount/1000000)+" XRP")+"</span><br/>"+
-		(result.Amount.issuer ? "<b>Issuer:</b> "+clickableAccountSpan(result.Amount.issuer)+"<br/>" : ""):"")+
+    var amount = result.meta.DeliveredAmount || result.Amount;
+	var output = (amount?"<b>Amount:</b> <span class='amount'>"+
+		(amount.currency ? commas(amount.value)+" "+amount.currency : commas(amount/1000000)+" XRP")+"</span><br/>"+
+		(amount.issuer ? "<b>Issuer:</b> "+clickableAccountSpan(amount.issuer)+"<br/>" : ""):"")+
 		"<b>Path:</b><ul>"+
 		(function(){
 			var output = "";
@@ -1640,7 +1643,7 @@ function updateTransactions(address, appending) {
 			var secondAissuer = null;
 
 			if (tx.TransactionType == "Payment") {
-				amount = tx.Amount;
+				amount = meta.DeliveredAmount || tx.Amount;
 				if (tx.Account == address) {
 					transactionType = "send";
 					counterparty = tx.Destination;
